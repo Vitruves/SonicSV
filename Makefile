@@ -136,13 +136,18 @@ compile-commands:
 release: CFLAGS += -DNDEBUG
 release: clean all
 
-# Install libraries and headers
-install: all
-	@mkdir -p /usr/local/include/sonicsv
-	@mkdir -p /usr/local/lib
-	cp *.h /usr/local/include/sonicsv/
-	cp $(LIB_DIR)/* /usr/local/lib/
-	ldconfig
+# Set the installation prefix to /usr and the include directory accordingly
+PREFIX ?= /usr
+INCDIR := $(PREFIX)/include
+
+install:
+	@echo "Removing old SonicSV headers from /usr/local/include/sonicsv (if any)..."
+	sudo rm -rf /usr/local/include/sonicsv/
+	@echo "Installing SonicSV header to $(INCDIR)/sonicsv.h"
+	mkdir -p $(INCDIR)
+	cp sonicsv.h $(INCDIR)/sonicsv.h
+	# Optionally install the library binaries (if any)
+	# cp libsonicsv.so $(PREFIX)/lib/
 
 # Show help information
 help:
