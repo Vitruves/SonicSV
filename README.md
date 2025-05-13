@@ -1,5 +1,7 @@
 # SonicSV
 
+![sonicsv](https://github.com/user-attachments/assets/6c44b8d9-76fb-4889-bd3c-7222085955b8)
+
 SonicSV is a high-performance CSV parsing library written in C, designed for maximum efficiency when processing large datasets. The library provides a streaming API that allows processing CSV files without loading the entire content into memory.
 
 ## Version
