@@ -193,6 +193,8 @@ SonicSV is benchmarked against [libcsv](https://github.com/rgamble/libcsv), a ma
 
 ### Benchmark Results
 
+#### On Linux Ubuntu
+
 -- Comparative Performance Results (5 iterations) --
 File: data/sample.csv
 | Implementation | Min(s) | Avg(s) | Max(s) | Speedup vs LibCSV |
@@ -209,6 +211,22 @@ File: data/sample.csv
 - Host: Precision T7600 (01)
 - Kernel: Linux 6.8.0-59-generic
 
+#### On MacOS
+
+-- Comparative Performance Results (5 iterations) --
+File: data/sample.csv
+| Implementation | Min(s) | Avg(s) | Max(s) | Speedup vs LibCSV |
+|----------------------|----------|----------|----------|------------------|
+| LibCSV [ST] | 0.02 | 0.02 | 0.02 | 1.00x |
+| SonicSV [ST] | 0.02 | 0.02 | 0.03 | 1.16x |
+| LibCSV [MT] | 0.07 | 0.07 | 0.07 | 1.00x |
+| SonicSV [MT] | 0.02 | 0.02 | 0.02 | 3.39x |
+
+**Testing Environment:**
+- OS: macOS Sequoia 15.4 arm64
+- Host: MacBook Air (13-inch, M3, 2024)
+- Kernel: Darwin 24.4.0
+- CPU: Apple M3 (8) @ 4.06 GHz
 
 ## License
 
