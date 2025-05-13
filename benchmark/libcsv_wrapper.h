@@ -1,3 +1,17 @@
+/**
+ * SonicSV Benchmark Suite
+ * 
+ * Performance comparison between SonicSV and other CSV parsing libraries.
+ * 
+ * This file provides a wrapper for libcsv (https://github.com/rgamble/libcsv)
+ * by Robert Gamble, which is used for benchmarking comparisons.
+ * 
+ * GitHub: https://github.com/Vitruves/SonicSV
+ * 
+ * Copyright (c) 2025 SonicSV Contributors
+ * MIT License
+ */
+
 #ifndef LIBCSV_WRAPPER_H
 #define LIBCSV_WRAPPER_H
 

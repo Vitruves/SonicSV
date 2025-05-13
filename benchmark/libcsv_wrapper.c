@@ -3,9 +3,15 @@
  * 
  * Performance comparison between SonicSV and other CSV parsing libraries.
  * 
+ * This file provides a wrapper for libcsv (https://github.com/rgamble/libcsv)
+ * by Robert Gamble, which is used for benchmarking comparisons.
+ * 
+ * libcsv is licensed under LGPL-2.1 and available at:
+ * https://github.com/rgamble/libcsv
+ * 
  * GitHub: https://github.com/Vitruves/SonicSV
  * 
- * Copyright (c) 2023 SonicSV Contributors
+ * Copyright (c) 2025 SonicSV Contributors
  * MIT License
  */
 
