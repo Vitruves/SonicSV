@@ -35,19 +35,6 @@ SonicSV is a portable, high-performance C library for parsing CSV and TSV files 
 - **Progress Tracking**: Real-time parsing progress and statistics
 - **Memory Management**: Optional memory pooling for reduced allocations
 
-## Performance Benchmarks
-
-SonicSV delivers exceptional performance across different data sizes and formats:
-
-| Dataset Size | Format | Throughput | SIMD Acceleration |
-|-------------|--------|------------|-------------------|
-| 100MB CSV   | Simple | ~2.5 GB/s  | AVX2 (4.2x boost) |
-| 100MB CSV   | Quoted | ~1.8 GB/s  | SSE4.2 (3.1x boost) |
-| 100MB TSV   | Tab-delimited | ~3.2 GB/s | AVX2 (5.1x boost) |
-| 1GB CSV     | Mixed | ~2.1 GB/s  | Auto-detected |
-
-*Benchmarks performed on Intel Xeon E5-2680 @ 2.70GHz with 32 cores*
-
 ### Benchmark Summary
 
 The following results summarize the performance of various CSV parsers:
@@ -66,6 +53,7 @@ Overall Performance Summary:
  9. semitrivial  (C)         Avg:    82.94 MB/s Max:   128.74 MB/s (100.0% scenarios)
 10. ariasdiniz (C)          Avg:    25.64 MB/s Max:    71.74 MB/s (100.0% scenarios)
 ```
+*Benchmarks performed on Intel Xeon E5-2680 @ 2.70GHz with 32 cores*
 
 ## Installation
 
