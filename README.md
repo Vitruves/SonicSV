@@ -6,6 +6,10 @@
 
 SonicSV is a portable, high-performance C library for parsing CSV and TSV files with optional SIMD acceleration. It provides both row-wise and batch processing capabilities, zero-copy field extraction, and is designed for large-scale data pipelines and parallel processing environments.
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/fb08ff91-e282-44c6-a4e2-5384955a1d9c" width="369" alt="image-9">
+</p>
+
 ## Key Features
 
 ### Performance
