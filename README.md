@@ -64,21 +64,10 @@ Overall Performance Summary:
 #include "sonicsv.h"
 ```
 
-### Building with CMake
+### Installing with Make
 
 ```bash
-git clone https://github.com/Vitruves/SonicSV.git
-cd SonicSV
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
-```
-
-### Building with XMake
-
-```bash
-xmake build
-xmake install
+sudo make install
 ```
 
 ## 📖 Quick Start
