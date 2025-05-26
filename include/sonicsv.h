@@ -1,66 +1,66 @@
 /*
  * ╔═══════════════════════════════════════════════════════════════════════════════════════╗
  * ║                          SonicSV - High-Performance CSV Parser                        ║
- * ║                        SIMD-Accelerated • Zero-Copy • Portable                       ║
+ * ║                        SIMD-Accelerated • Zero-Copy • Portable                        ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                                       ║
- * ║  Version     : 2.0.0                                                                 ║
+ * ║  Version     : 2.0.0                                                                  ║
  * ║  License     : MIT License                                                            ║
- * ║  Repository  : https://github.com/Vitruves/SonicSV                                   ║
- * ║  Authors     : J.H.G Natter & SonicSV Contributors                                   ║
- * ║  Build Date  : 2025-01-27                                                            ║
+ * ║  Repository  : https://github.com/Vitruves/SonicSV                                    ║
+ * ║  Authors     : J.H.G Natter & SonicSV Contributors                                    ║
+ * ║  Build Date  : 2025-01-27                                                             ║
  * ║                                                                                       ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
  * ║                                  DESCRIPTION                                          ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                                       ║
- * ║  SonicSV is a production-ready, high-performance C library for parsing CSV and TSV   ║
- * ║  files with automatic SIMD acceleration. Designed for data scientists, engineers,    ║
- * ║  and developers who need to process large datasets efficiently.                      ║
+ * ║  SonicSV is a production-ready, high-performance C library for parsing CSV and TSV    ║
+ * ║  files with automatic SIMD acceleration. Designed for data scientists, engineers,     ║
+ * ║  and developers who need to process large datasets efficiently.                       ║
  * ║                                                                                       ║
  * ║  🚀 KEY FEATURES:                                                                     ║
- * ║    • SIMD Acceleration: SSE4.2, AVX2 (x86_64), NEON (ARM64)                         ║
- * ║    • Zero-Copy Parsing: Direct field access without memory overhead                  ║
- * ║    • Adaptive Parsing: Auto-detection of optimal parsing strategies                  ║
- * ║    • Batch Processing: Efficient handling of large datasets                          ║
- * ║    • Parallel Processing: Multi-threaded row processing capabilities                 ║
- * ║    • Cross-Platform: Linux, macOS, Windows, embedded systems                         ║
- * ║    • Header-Only: Single-file implementation option                                  ║
+ * ║    • SIMD Acceleration: SSE4.2, AVX2 (x86_64), NEON (ARM64)                           ║
+ * ║    • Zero-Copy Parsing: Direct field access without memory overhead                   ║
+ * ║    • Adaptive Parsing: Auto-detection of optimal parsing strategies                   ║
+ * ║    • Batch Processing: Efficient handling of large datasets                           ║
+ * ║    • Parallel Processing: Multi-threaded row processing capabilities                  ║
+ * ║    • Cross-Platform: Linux, macOS, Windows, embedded systems                          ║
+ * ║    • Header-Only: Single-file implementation option                                   ║
  * ║                                                                                       ║
  * ║  📊 PERFORMANCE:                                                                      ║
- * ║    • Up to 3.2 GB/s throughput on modern hardware                                    ║
- * ║    • 4-5x speedup with SIMD acceleration                                             ║
- * ║    • Memory-efficient with configurable pooling                                      ║
- * ║    • Optimized for both small and large files                                        ║
+ * ║    • Up to 3.2 GB/s throughput on modern hardware                                     ║
+ * ║    • 4-5x speedup with SIMD acceleration                                              ║
+ * ║    • Memory-efficient with configurable pooling                                       ║
+ * ║    • Optimized for both small and large files                                         ║
  * ║                                                                                       ║
  * ║  🔧 COMPATIBILITY:                                                                    ║
- * ║    • C99+ and C++11+ compatible                                                      ║
- * ║    • x86_64 (Intel/AMD) and ARM64 (Apple Silicon, ARM servers)                      ║
- * ║    • GCC 7+, Clang 6+, MSVC 2019+                                                   ║
+ * ║    • C99+ and C++11+ compatible                                                       ║
+ * ║    • x86_64 (Intel/AMD) and ARM64 (Apple Silicon, ARM servers)                        ║
+ * ║    • GCC 7+, Clang 6+, MSVC 2019+                                                     ║
  * ║    • CMake, XMake, and manual compilation support                                     ║
  * ║                                                                                       ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
- * ║                                   USAGE EXAMPLE                                      ║
+ * ║                                   USAGE EXAMPLE                                       ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                                       ║
- * ║    #define SONICSV_IMPLEMENTATION  // Include implementation                         ║
- * ║    #include "sonicsv.h"                                                              ║
+ * ║    #define SONICSV_IMPLEMENTATION  // Include implementation                          ║
+ * ║    #include "sonicsv.h"                                                               ║
  * ║                                                                                       ║
- * ║    void row_callback(const csv_row_t *row, void *user_data) {                        ║
- * ║        for (uint32_t i = 0; i < row->num_fields; i++) {                             ║
- * ║            printf("Field %u: %.*s\n", i,                                            ║
- * ║                   row->fields[i].size, row->fields[i].data);                        ║
- * ║        }                                                                             ║
- * ║    }                                                                                 ║
+ * ║    void row_callback(const csv_row_t *row, void *user_data) {                         ║
+ * ║        for (uint32_t i = 0; i < row->num_fields; i++) {                               ║
+ * ║            printf("Field %u: %.*s\n", i,                                              ║ 
+ * ║                   row->fields[i].size, row->fields[i].data);                          ║
+ * ║        }                                                                              ║
+ * ║    }                                                                                  ║
  * ║                                                                                       ║
- * ║    int main() {                                                                      ║
- * ║        csv_simd_init();  // Initialize SIMD features                                ║
- * ║        csv_parser_t *parser = csv_parser_create(NULL);                              ║
- * ║        csv_parser_set_row_callback(parser, row_callback, NULL);                     ║
- * ║        csv_parse_file(parser, "data.csv");                                          ║
- * ║        csv_parser_destroy(parser);                                                  ║
- * ║        return 0;                                                                     ║
- * ║    }                                                                                 ║
+ * ║    int main() {                                                                       ║
+ * ║        csv_simd_init();  // Initialize SIMD features                                  ║
+ * ║        csv_parser_t *parser = csv_parser_create(NULL);                                ║
+ * ║        csv_parser_set_row_callback(parser, row_callback, NULL);                       ║
+ * ║        csv_parse_file(parser, "data.csv");                                            ║
+ * ║        csv_parser_destroy(parser);                                                    ║
+ * ║        return 0;                                                                      ║
+ * ║    }                                                                                  ║
  * ║                                                                                       ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
  * ║                           MULTITHREADING & STREAMING GUIDE                          ║
@@ -68,7 +68,7 @@
  * ║                                                                                       ║
  * ║  SonicSV provides three distinct approaches for high-performance CSV processing:     ║
  * ║                                                                                       ║
- * ║  🔄 1. BUILT-IN MULTITHREADING (csv_block_parser_t):                                ║
+ * ║   1. BUILT-IN MULTITHREADING (csv_block_parser_t):                                ║
  * ║      • Native parallel processing with automatic workload distribution              ║
  * ║      • Configure with csv_block_config_t.parallel_processing = true                 ║
  * ║      • Set csv_block_config_t.num_threads to match your CPU cores                   ║
@@ -82,7 +82,7 @@
  * ║        config.block_size = 2 * 1024 * 1024;  // 2MB blocks                         ║
  * ║        csv_block_parser_t *parser = csv_block_parser_create(&config);               ║
  * ║                                                                                       ║
- * ║  📊 2. STREAMING PARSER (csv_parser_t):                                             ║
+ * ║   2. STREAMING PARSER (csv_parser_t):                                             ║
  * ║      • Memory-efficient single-threaded processing                                  ║
  * ║      • Row-by-row callbacks for immediate processing                                ║
  * ║      • Minimal memory footprint for large files                                     ║
@@ -95,7 +95,7 @@
  * ║        csv_parser_set_progress_callback(parser, show_progress, NULL);               ║
  * ║        csv_parse_file(parser, "large_file.csv");                                    ║
  * ║                                                                                       ║
- * ║  🧵 3. MANUAL MULTITHREADING:                                                       ║
+ * ║   3. MANUAL MULTITHREADING:                                                       ║
  * ║      • Custom threading with file chunking and line boundary detection             ║
  * ║      • Use separate csv_parser_t instances per thread                               ║
  * ║      • Implement pthread or custom thread pools                                     ║
@@ -108,7 +108,7 @@
  * ║        // Use pthread_create() or custom thread pool                                ║
  * ║        // Aggregate results with thread-safe mechanisms                             ║
  * ║                                                                                       ║
- * ║  📈 PERFORMANCE RECOMMENDATIONS:                                                    ║
+ * ║   PERFORMANCE RECOMMENDATIONS:                                                    ║
  * ║      • Use built-in multithreading for maximum throughput (>100MB files)           ║
  * ║      • Use streaming for memory-limited environments or real-time processing       ║
  * ║      • Use manual threading for custom integration requirements                     ║
@@ -120,27 +120,27 @@
  * ║                                 IMPORTANT NOTICES                                    ║
  * ╠═══════════════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                                       ║
- * ║  ⚠️  THREAD SAFETY:                                                                  ║
+ * ║    THREAD SAFETY:                                                                  ║
  * ║      Parser instances are NOT thread-safe. Use separate parsers per thread or       ║
  * ║      implement external synchronization. The SIMD detection functions are           ║
  * ║      thread-safe after initialization.                                               ║
  * ║                                                                                       ║
- * ║  🔒 MEMORY MANAGEMENT:                                                               ║
+ * ║   MEMORY MANAGEMENT:                                                               ║
  * ║      Zero-copy parsing means field data points directly into input buffers.         ║
  * ║      Ensure input data remains valid during field access. Use string pooling        ║
  * ║      for long-lived field references.                                                ║
  * ║                                                                                       ║
- * ║  🎯 PERFORMANCE CONSIDERATIONS:                                                      ║
+ * ║   PERFORMANCE CONSIDERATIONS:                                                      ║
  * ║      • Call csv_simd_init() once at program startup                                 ║
  * ║      • Use batch processing for files > 10MB                                        ║
  * ║      • Enable parallel processing for multi-core systems                            ║
  * ║      • Consider memory pooling for high-frequency parsing                           ║
  * ║                                                                                       ║
- * ║  📝 ERROR HANDLING:                                                                  ║
+ * ║   ERROR HANDLING:                                                                  ║
  * ║      All functions return csv_error_t codes. Always check return values.            ║
  * ║      Use error callbacks for detailed error reporting with row/column context.      ║
  * ║                                                                                       ║
- * ║  🔧 COMPILATION:                                                                     ║
+ * ║   COMPILATION:                                                                     ║
  * ║      Define SONICSV_IMPLEMENTATION before including this header in ONE source       ║
  * ║      file to include the implementation. Link with -lm on Unix systems.             ║
  * ║                                                                                       ║
