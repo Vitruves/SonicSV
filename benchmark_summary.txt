@@ -1,0 +1,730 @@
+Multi-Scenario CSV Parser Performance Analysis
+================================================================================
+
+Execution Environment:
+  Platform: Linux 6.8.0-59-generic
+  Architecture: x86_64
+  CPU Cores: 32
+
+Test Configuration:
+  Total Scenarios: 54
+  Test Mode: balanced
+  Iterations per Benchmark: 3
+
+Overall Performance Summary:
+--------------------------------------------------------------------------------
+ 1. sonicsv_batching     Avg:  2066.56 MB/s Max:  4481.62 MB/s (100.0% scenarios)
+ 2. sonicsv_mt           Avg:   580.93 MB/s Max:  1213.96 MB/s (100.0% scenarios)
+ 3. sonicsv_streaming    Avg:   433.30 MB/s Max:   962.10 MB/s (100.0% scenarios)
+ 4. libcsv_mt            Avg:   405.78 MB/s Max:   776.88 MB/s (100.0% scenarios)
+ 5. arrow                Avg:   303.16 MB/s Max:  1120.56 MB/s (100.0% scenarios)
+ 6. rapidcsv             Avg:   268.68 MB/s Max:   385.04 MB/s (100.0% scenarios)
+ 7. d99kris              Avg:   267.34 MB/s Max:   387.69 MB/s (100.0% scenarios)
+ 8. libcsv               Avg:   112.07 MB/s Max:   143.24 MB/s (100.0% scenarios)
+ 9. semitrivial          Avg:    82.94 MB/s Max:   128.74 MB/s (100.0% scenarios)
+10. ariasdiniz           Avg:    25.64 MB/s Max:    71.74 MB/s (100.0% scenarios)
+
+Detailed Scenario Results:
+--------------------------------------------------------------------------------
+
+Scenario: csv_numeric_10000r_5c_4ch
+  Configuration: 10,000 rows × 5 cols, numeric content, 0.24 MB
+    1. sonicsv_batching   139.32 MB/s
+    2. sonicsv_streaming    70.79 MB/s
+    3. rapidcsv           59.04 MB/s
+    4. d99kris            55.05 MB/s
+    5. libcsv             48.60 MB/s
+    6. libcsv_mt          45.20 MB/s
+    7. sonicsv_mt         44.46 MB/s
+    8. semitrivial        34.73 MB/s
+    9. arrow               6.34 MB/s
+    10. ariasdiniz          5.82 MB/s
+
+Scenario: csv_mixed_10000r_5c_4ch
+  Configuration: 10,000 rows × 5 cols, mixed content, 0.24 MB
+    1. sonicsv_batching   122.52 MB/s
+    2. sonicsv_streaming    79.40 MB/s
+    3. d99kris            60.93 MB/s
+    4. rapidcsv           59.17 MB/s
+    5. libcsv             53.28 MB/s
+    6. sonicsv_mt         45.66 MB/s
+    7. libcsv_mt          44.58 MB/s
+    8. semitrivial        34.71 MB/s
+    9. arrow               8.33 MB/s
+    10. ariasdiniz          5.00 MB/s
+
+Scenario: csv_numeric_10000r_5c_8ch
+  Configuration: 10,000 rows × 5 cols, numeric content, 0.43 MB
+    1. sonicsv_batching   231.94 MB/s
+    2. sonicsv_streaming   151.87 MB/s
+    3. rapidcsv          126.28 MB/s
+    4. d99kris           118.63 MB/s
+    5. libcsv_mt          91.15 MB/s
+    6. sonicsv_mt         83.29 MB/s
+    7. libcsv             72.37 MB/s
+    8. semitrivial        60.81 MB/s
+    9. arrow              13.94 MB/s
+    10. ariasdiniz          8.92 MB/s
+
+Scenario: csv_mixed_10000r_5c_8ch
+  Configuration: 10,000 rows × 5 cols, mixed content, 0.43 MB
+    1. sonicsv_batching   222.48 MB/s
+    2. sonicsv_streaming   157.70 MB/s
+    3. rapidcsv           92.75 MB/s
+    4. d99kris            92.28 MB/s
+    5. sonicsv_mt         84.92 MB/s
+    6. libcsv_mt          77.59 MB/s
+    7. libcsv             68.03 MB/s
+    8. semitrivial        51.26 MB/s
+    9. arrow              13.89 MB/s
+    10. ariasdiniz          8.91 MB/s
+
+Scenario: csv_numeric_10000r_10c_4ch
+  Configuration: 10,000 rows × 10 cols, numeric content, 0.48 MB
+    1. sonicsv_batching   261.97 MB/s
+    2. sonicsv_streaming   133.06 MB/s
+    3. rapidcsv          115.55 MB/s
+    4. d99kris           108.93 MB/s
+    5. sonicsv_mt         97.70 MB/s
+    6. libcsv_mt          87.26 MB/s
+    7. libcsv             72.55 MB/s
+    8. semitrivial        47.64 MB/s
+    9. arrow              11.88 MB/s
+    10. ariasdiniz          9.91 MB/s
+
+Scenario: csv_mixed_10000r_10c_4ch
+  Configuration: 10,000 rows × 10 cols, mixed content, 0.48 MB
+    1. sonicsv_batching   255.54 MB/s
+    2. sonicsv_streaming   134.54 MB/s
+    3. d99kris           129.71 MB/s
+    4. rapidcsv          109.71 MB/s
+    5. sonicsv_mt         90.36 MB/s
+    6. libcsv_mt          83.64 MB/s
+    7. libcsv             82.27 MB/s
+    8. semitrivial        44.26 MB/s
+    9. arrow              15.54 MB/s
+    10. ariasdiniz          9.79 MB/s
+
+Scenario: csv_numeric_10000r_5c_16ch
+  Configuration: 10,000 rows × 5 cols, numeric content, 0.81 MB
+    1. sonicsv_batching   305.41 MB/s
+    2. sonicsv_streaming   227.55 MB/s
+    3. d99kris           157.04 MB/s
+    4. libcsv_mt         139.37 MB/s
+    5. sonicsv_mt        137.93 MB/s
+    6. rapidcsv          128.38 MB/s
+    7. semitrivial        72.89 MB/s
+    8. libcsv             68.52 MB/s
+    9. arrow              22.51 MB/s
+    10. ariasdiniz         16.56 MB/s
+
+Scenario: csv_mixed_10000r_5c_16ch
+  Configuration: 10,000 rows × 5 cols, mixed content, 0.81 MB
+    1. sonicsv_batching   466.24 MB/s
+    2. sonicsv_streaming   300.61 MB/s
+    3. sonicsv_mt        174.55 MB/s
+    4. libcsv_mt         173.09 MB/s
+    5. d99kris           165.85 MB/s
+    6. rapidcsv          126.81 MB/s
+    7. semitrivial        79.10 MB/s
+    8. libcsv             69.97 MB/s
+    9. arrow              24.96 MB/s
+    10. ariasdiniz         16.80 MB/s
+
+Scenario: csv_numeric_10000r_10c_8ch
+  Configuration: 10,000 rows × 10 cols, numeric content, 0.86 MB
+    1. sonicsv_batching   462.41 MB/s
+    2. sonicsv_streaming   194.97 MB/s
+    3. sonicsv_mt        160.60 MB/s
+    4. d99kris           156.70 MB/s
+    5. libcsv_mt         149.03 MB/s
+    6. rapidcsv          143.66 MB/s
+    7. libcsv             87.75 MB/s
+    8. semitrivial        65.71 MB/s
+    9. arrow              22.45 MB/s
+    10. ariasdiniz         17.59 MB/s
+
+Scenario: csv_mixed_10000r_10c_8ch
+  Configuration: 10,000 rows × 10 cols, mixed content, 0.86 MB
+    1. sonicsv_batching   400.06 MB/s
+    2. sonicsv_streaming   213.24 MB/s
+    3. sonicsv_mt        153.16 MB/s
+    4. rapidcsv          142.86 MB/s
+    5. libcsv_mt         141.60 MB/s
+    6. d99kris           135.74 MB/s
+    7. libcsv             75.72 MB/s
+    8. semitrivial        58.98 MB/s
+    9. arrow              24.16 MB/s
+    10. ariasdiniz         17.47 MB/s
+
+Scenario: csv_numeric_10000r_20c_4ch
+  Configuration: 10,000 rows × 20 cols, numeric content, 0.95 MB
+    1. sonicsv_batching   542.57 MB/s
+    2. sonicsv_mt        195.72 MB/s
+    3. d99kris           174.80 MB/s
+    4. sonicsv_streaming   172.84 MB/s
+    5. libcsv_mt         167.04 MB/s
+    6. rapidcsv          148.53 MB/s
+    7. libcsv             79.81 MB/s
+    8. semitrivial        49.04 MB/s
+    9. arrow              23.52 MB/s
+    10. ariasdiniz         19.69 MB/s
+
+Scenario: csv_mixed_10000r_20c_4ch
+  Configuration: 10,000 rows × 20 cols, mixed content, 0.95 MB
+    1. sonicsv_batching   526.37 MB/s
+    2. sonicsv_streaming   189.07 MB/s
+    3. sonicsv_mt        181.77 MB/s
+    4. libcsv_mt         162.07 MB/s
+    5. rapidcsv          153.30 MB/s
+    6. d99kris           152.84 MB/s
+    7. libcsv             80.35 MB/s
+    8. semitrivial        49.31 MB/s
+    9. arrow              24.49 MB/s
+    10. ariasdiniz         19.30 MB/s
+
+Scenario: csv_numeric_10000r_10c_16ch
+  Configuration: 10,000 rows × 10 cols, numeric content, 1.62 MB
+    1. sonicsv_batching   728.09 MB/s
+    2. sonicsv_streaming   418.01 MB/s
+    3. sonicsv_mt        293.19 MB/s
+    4. d99kris           231.89 MB/s
+    5. libcsv_mt         231.49 MB/s
+    6. rapidcsv          190.80 MB/s
+    7. libcsv            101.10 MB/s
+    8. semitrivial        87.26 MB/s
+    9. arrow              39.02 MB/s
+    10. ariasdiniz         31.90 MB/s
+
+Scenario: csv_mixed_10000r_10c_16ch
+  Configuration: 10,000 rows × 10 cols, mixed content, 1.62 MB
+    1. sonicsv_batching   826.65 MB/s
+    2. sonicsv_streaming   383.54 MB/s
+    3. sonicsv_mt        251.09 MB/s
+    4. libcsv_mt         223.87 MB/s
+    5. rapidcsv          191.74 MB/s
+    6. d99kris           182.49 MB/s
+    7. libcsv             90.40 MB/s
+    8. semitrivial        87.99 MB/s
+    9. arrow              48.28 MB/s
+    10. ariasdiniz         31.85 MB/s
+
+Scenario: csv_numeric_10000r_20c_8ch
+  Configuration: 10,000 rows × 20 cols, numeric content, 1.72 MB
+    1. sonicsv_batching   890.80 MB/s
+    2. sonicsv_streaming   296.55 MB/s
+    3. sonicsv_mt        254.80 MB/s
+    4. libcsv_mt         242.35 MB/s
+    5. rapidcsv          196.65 MB/s
+    6. d99kris           175.09 MB/s
+    7. libcsv             73.46 MB/s
+    8. semitrivial        72.51 MB/s
+    9. arrow              44.94 MB/s
+    10. ariasdiniz         33.68 MB/s
+
+Scenario: csv_mixed_10000r_20c_8ch
+  Configuration: 10,000 rows × 20 cols, mixed content, 1.72 MB
+    1. sonicsv_batching   743.46 MB/s
+    2. sonicsv_streaming   291.20 MB/s
+    3. sonicsv_mt        224.18 MB/s
+    4. libcsv_mt         215.42 MB/s
+    5. d99kris           206.59 MB/s
+    6. rapidcsv          185.49 MB/s
+    7. libcsv             92.07 MB/s
+    8. semitrivial        69.02 MB/s
+    9. arrow              44.61 MB/s
+    10. ariasdiniz         33.72 MB/s
+
+Scenario: csv_numeric_100000r_5c_4ch
+  Configuration: 100,000 rows × 5 cols, numeric content, 2.38 MB
+    1. sonicsv_batching   945.03 MB/s
+    2. sonicsv_mt        345.33 MB/s
+    3. libcsv_mt         231.82 MB/s
+    4. rapidcsv          223.72 MB/s
+    5. sonicsv_streaming   214.20 MB/s
+    6. d99kris           198.93 MB/s
+    7. libcsv             88.13 MB/s
+    8. semitrivial        53.51 MB/s
+    9. arrow              49.91 MB/s
+    10. ariasdiniz          6.20 MB/s
+
+Scenario: csv_mixed_100000r_5c_4ch
+  Configuration: 100,000 rows × 5 cols, mixed content, 2.38 MB
+    1. sonicsv_batching   831.85 MB/s
+    2. sonicsv_mt        338.38 MB/s
+    3. libcsv_mt         223.65 MB/s
+    4. sonicsv_streaming   215.29 MB/s
+    5. d99kris           214.14 MB/s
+    6. rapidcsv          175.18 MB/s
+    7. libcsv             87.89 MB/s
+    8. arrow              65.72 MB/s
+    9. semitrivial        56.24 MB/s
+    10. ariasdiniz          6.14 MB/s
+
+Scenario: csv_numeric_10000r_20c_16ch
+  Configuration: 10,000 rows × 20 cols, numeric content, 3.24 MB
+    1. sonicsv_batching  1195.21 MB/s
+    2. sonicsv_streaming   525.33 MB/s
+    3. sonicsv_mt        409.17 MB/s
+    4. libcsv_mt         294.86 MB/s
+    5. d99kris           275.60 MB/s
+    6. rapidcsv          203.70 MB/s
+    7. libcsv            100.59 MB/s
+    8. semitrivial        95.38 MB/s
+    9. arrow              74.30 MB/s
+    10. ariasdiniz         59.80 MB/s
+
+Scenario: csv_mixed_10000r_20c_16ch
+  Configuration: 10,000 rows × 20 cols, mixed content, 3.24 MB
+    1. sonicsv_batching  1093.33 MB/s
+    2. sonicsv_streaming   490.80 MB/s
+    3. sonicsv_mt        391.91 MB/s
+    4. libcsv_mt         333.37 MB/s
+    5. d99kris           243.81 MB/s
+    6. rapidcsv          234.54 MB/s
+    7. libcsv            104.29 MB/s
+    8. arrow              91.79 MB/s
+    9. semitrivial        87.46 MB/s
+    10. ariasdiniz         60.05 MB/s
+
+Scenario: csv_numeric_100000r_5c_8ch
+  Configuration: 100,000 rows × 5 cols, numeric content, 4.29 MB
+    1. sonicsv_batching  1502.62 MB/s
+    2. sonicsv_mt        460.04 MB/s
+    3. sonicsv_streaming   377.89 MB/s
+    4. libcsv_mt         329.72 MB/s
+    5. rapidcsv          293.66 MB/s
+    6. d99kris           243.82 MB/s
+    7. libcsv            105.70 MB/s
+    8. arrow              88.56 MB/s
+    9. semitrivial        71.73 MB/s
+    10. ariasdiniz         10.57 MB/s
+
+Scenario: csv_mixed_100000r_5c_8ch
+  Configuration: 100,000 rows × 5 cols, mixed content, 4.29 MB
+    1. sonicsv_batching  1336.52 MB/s
+    2. sonicsv_mt        509.51 MB/s
+    3. sonicsv_streaming   374.31 MB/s
+    4. libcsv_mt         323.65 MB/s
+    5. d99kris           256.24 MB/s
+    6. rapidcsv          240.90 MB/s
+    7. arrow             119.06 MB/s
+    8. libcsv            104.04 MB/s
+    9. semitrivial        81.17 MB/s
+    10. ariasdiniz         10.90 MB/s
+
+Scenario: csv_numeric_100000r_10c_4ch
+  Configuration: 100,000 rows × 10 cols, numeric content, 4.77 MB
+    1. sonicsv_batching  1824.36 MB/s
+    2. sonicsv_mt        450.66 MB/s
+    3. libcsv_mt         346.42 MB/s
+    4. rapidcsv          253.16 MB/s
+    5. sonicsv_streaming   246.00 MB/s
+    6. d99kris           238.38 MB/s
+    7. libcsv            114.73 MB/s
+    8. arrow             110.42 MB/s
+    9. semitrivial        63.45 MB/s
+    10. ariasdiniz         11.90 MB/s
+
+Scenario: csv_mixed_100000r_10c_4ch
+  Configuration: 100,000 rows × 10 cols, mixed content, 4.77 MB
+    1. sonicsv_batching  2001.29 MB/s
+    2. sonicsv_mt        501.94 MB/s
+    3. libcsv_mt         357.62 MB/s
+    4. rapidcsv          311.96 MB/s
+    5. sonicsv_streaming   244.01 MB/s
+    6. d99kris           226.10 MB/s
+    7. libcsv            108.07 MB/s
+    8. arrow              99.27 MB/s
+    9. semitrivial        65.97 MB/s
+    10. ariasdiniz         12.20 MB/s
+
+Scenario: csv_numeric_100000r_5c_16ch
+  Configuration: 100,000 rows × 5 cols, numeric content, 8.11 MB
+    1. sonicsv_batching  2205.48 MB/s
+    2. sonicsv_streaming   634.64 MB/s
+    3. sonicsv_mt        603.11 MB/s
+    4. libcsv_mt         484.21 MB/s
+    5. rapidcsv          295.92 MB/s
+    6. d99kris           269.03 MB/s
+    7. arrow             167.81 MB/s
+    8. libcsv            120.40 MB/s
+    9. semitrivial       105.06 MB/s
+    10. ariasdiniz         20.06 MB/s
+
+Scenario: csv_mixed_100000r_5c_16ch
+  Configuration: 100,000 rows × 5 cols, mixed content, 8.11 MB
+    1. sonicsv_batching  1950.77 MB/s
+    2. sonicsv_mt        662.83 MB/s
+    3. sonicsv_streaming   627.78 MB/s
+    4. libcsv_mt         466.73 MB/s
+    5. rapidcsv          300.16 MB/s
+    6. d99kris           266.54 MB/s
+    7. arrow             179.20 MB/s
+    8. libcsv            118.97 MB/s
+    9. semitrivial       109.32 MB/s
+    10. ariasdiniz         19.56 MB/s
+
+Scenario: csv_numeric_100000r_10c_8ch
+  Configuration: 100,000 rows × 10 cols, numeric content, 8.58 MB
+    1. sonicsv_batching  2497.21 MB/s
+    2. sonicsv_mt        580.45 MB/s
+    3. libcsv_mt         421.51 MB/s
+    4. sonicsv_streaming   402.57 MB/s
+    5. rapidcsv          272.78 MB/s
+    6. d99kris           270.37 MB/s
+    7. arrow             166.76 MB/s
+    8. libcsv            119.75 MB/s
+    9. semitrivial        89.78 MB/s
+    10. ariasdiniz         20.81 MB/s
+
+Scenario: csv_mixed_100000r_10c_8ch
+  Configuration: 100,000 rows × 10 cols, mixed content, 8.58 MB
+    1. sonicsv_batching  2316.68 MB/s
+    2. sonicsv_mt        555.91 MB/s
+    3. libcsv_mt         411.35 MB/s
+    4. sonicsv_streaming   397.04 MB/s
+    5. rapidcsv          298.22 MB/s
+    6. d99kris           297.82 MB/s
+    7. arrow             164.44 MB/s
+    8. libcsv            115.53 MB/s
+    9. semitrivial        88.82 MB/s
+    10. ariasdiniz         21.41 MB/s
+
+Scenario: csv_numeric_100000r_20c_4ch
+  Configuration: 100,000 rows × 20 cols, numeric content, 9.54 MB
+    1. sonicsv_batching  2196.02 MB/s
+    2. sonicsv_mt        591.48 MB/s
+    3. libcsv_mt         428.87 MB/s
+    4. rapidcsv          278.05 MB/s
+    5. sonicsv_streaming   267.47 MB/s
+    6. d99kris           260.30 MB/s
+    7. arrow             153.68 MB/s
+    8. libcsv            123.62 MB/s
+    9. semitrivial        67.86 MB/s
+    10. ariasdiniz         23.47 MB/s
+
+Scenario: csv_mixed_100000r_20c_4ch
+  Configuration: 100,000 rows × 20 cols, mixed content, 9.54 MB
+    1. sonicsv_batching  2226.45 MB/s
+    2. sonicsv_mt        550.39 MB/s
+    3. libcsv_mt         435.54 MB/s
+    4. rapidcsv          314.29 MB/s
+    5. d99kris           276.21 MB/s
+    6. sonicsv_streaming   263.14 MB/s
+    7. arrow             172.20 MB/s
+    8. libcsv            119.40 MB/s
+    9. semitrivial        68.03 MB/s
+    10. ariasdiniz         23.45 MB/s
+
+Scenario: csv_numeric_100000r_10c_16ch
+  Configuration: 100,000 rows × 10 cols, numeric content, 16.21 MB
+    1. sonicsv_batching  2281.06 MB/s
+    2. sonicsv_streaming   718.15 MB/s
+    3. sonicsv_mt        676.70 MB/s
+    4. libcsv_mt         500.81 MB/s
+    5. rapidcsv          338.82 MB/s
+    6. d99kris           304.88 MB/s
+    7. arrow             282.02 MB/s
+    8. libcsv            133.49 MB/s
+    9. semitrivial       119.02 MB/s
+    10. ariasdiniz         38.66 MB/s
+
+Scenario: csv_mixed_100000r_10c_16ch
+  Configuration: 100,000 rows × 10 cols, mixed content, 16.21 MB
+    1. sonicsv_batching  2076.36 MB/s
+    2. sonicsv_mt        725.12 MB/s
+    3. sonicsv_streaming   627.78 MB/s
+    4. libcsv_mt         496.97 MB/s
+    5. d99kris           324.11 MB/s
+    6. rapidcsv          324.05 MB/s
+    7. arrow             310.44 MB/s
+    8. libcsv            129.73 MB/s
+    9. semitrivial       121.76 MB/s
+    10. ariasdiniz         38.70 MB/s
+
+Scenario: csv_numeric_100000r_20c_8ch
+  Configuration: 100,000 rows × 20 cols, numeric content, 17.17 MB
+    1. sonicsv_batching  2085.08 MB/s
+    2. sonicsv_mt        655.54 MB/s
+    3. libcsv_mt         497.02 MB/s
+    4. sonicsv_streaming   473.67 MB/s
+    5. rapidcsv          332.49 MB/s
+    6. d99kris           298.46 MB/s
+    7. arrow             251.99 MB/s
+    8. libcsv            137.19 MB/s
+    9. semitrivial        92.03 MB/s
+    10. ariasdiniz         40.23 MB/s
+
+Scenario: csv_mixed_100000r_20c_8ch
+  Configuration: 100,000 rows × 20 cols, mixed content, 17.17 MB
+    1. sonicsv_batching  2276.48 MB/s
+    2. sonicsv_mt        747.17 MB/s
+    3. sonicsv_streaming   475.24 MB/s
+    4. libcsv_mt         455.96 MB/s
+    5. d99kris           323.24 MB/s
+    6. rapidcsv          311.33 MB/s
+    7. arrow             283.17 MB/s
+    8. libcsv            127.14 MB/s
+    9. semitrivial        92.13 MB/s
+    10. ariasdiniz         39.94 MB/s
+
+Scenario: csv_numeric_1000000r_5c_4ch
+  Configuration: 1,000,000 rows × 5 cols, numeric content, 23.84 MB
+    1. sonicsv_batching  2854.92 MB/s
+    2. sonicsv_mt        683.65 MB/s
+    3. libcsv_mt         447.56 MB/s
+    4. rapidcsv          335.14 MB/s
+    5. d99kris           335.00 MB/s
+    6. sonicsv_streaming   301.03 MB/s
+    7. arrow             291.83 MB/s
+    8. libcsv            121.58 MB/s
+    9. semitrivial        66.15 MB/s
+    10. ariasdiniz          6.23 MB/s
+
+Scenario: csv_mixed_1000000r_5c_4ch
+  Configuration: 1,000,000 rows × 5 cols, mixed content, 23.84 MB
+    1. sonicsv_batching  2628.42 MB/s
+    2. sonicsv_mt        672.74 MB/s
+    3. libcsv_mt         522.87 MB/s
+    4. rapidcsv          364.20 MB/s
+    5. sonicsv_streaming   339.79 MB/s
+    6. arrow             338.98 MB/s
+    7. d99kris           335.81 MB/s
+    8. libcsv            125.59 MB/s
+    9. semitrivial        64.24 MB/s
+    10. ariasdiniz          6.21 MB/s
+
+Scenario: csv_numeric_100000r_20c_16ch
+  Configuration: 100,000 rows × 20 cols, numeric content, 32.43 MB
+    1. sonicsv_batching  2780.55 MB/s
+    2. sonicsv_mt        861.86 MB/s
+    3. sonicsv_streaming   765.64 MB/s
+    4. libcsv_mt         649.52 MB/s
+    5. arrow             432.39 MB/s
+    6. d99kris           379.34 MB/s
+    7. rapidcsv          348.65 MB/s
+    8. libcsv            142.86 MB/s
+    9. semitrivial       121.42 MB/s
+    10. ariasdiniz         69.57 MB/s
+
+Scenario: csv_mixed_100000r_20c_16ch
+  Configuration: 100,000 rows × 20 cols, mixed content, 32.43 MB
+    1. sonicsv_batching  2797.62 MB/s
+    2. sonicsv_mt        886.37 MB/s
+    3. sonicsv_streaming   811.52 MB/s
+    4. libcsv_mt         638.25 MB/s
+    5. arrow             515.79 MB/s
+    6. d99kris           345.40 MB/s
+    7. rapidcsv          316.25 MB/s
+    8. libcsv            141.48 MB/s
+    9. semitrivial       125.02 MB/s
+    10. ariasdiniz         69.58 MB/s
+
+Scenario: csv_numeric_1000000r_5c_8ch
+  Configuration: 1,000,000 rows × 5 cols, numeric content, 42.92 MB
+    1. sonicsv_batching  3351.23 MB/s
+    2. sonicsv_mt        861.71 MB/s
+    3. libcsv_mt         604.26 MB/s
+    4. sonicsv_streaming   556.49 MB/s
+    5. arrow             442.17 MB/s
+    6. rapidcsv          357.48 MB/s
+    7. d99kris           348.34 MB/s
+    8. libcsv            137.58 MB/s
+    9. semitrivial        87.44 MB/s
+    10. ariasdiniz         10.90 MB/s
+
+Scenario: csv_mixed_1000000r_5c_8ch
+  Configuration: 1,000,000 rows × 5 cols, mixed content, 42.92 MB
+    1. sonicsv_batching  3246.14 MB/s
+    2. sonicsv_mt        872.55 MB/s
+    3. libcsv_mt         559.64 MB/s
+    4. sonicsv_streaming   551.14 MB/s
+    5. arrow             521.39 MB/s
+    6. rapidcsv          377.04 MB/s
+    7. d99kris           340.55 MB/s
+    8. libcsv            137.73 MB/s
+    9. semitrivial        90.32 MB/s
+    10. ariasdiniz         11.04 MB/s
+
+Scenario: csv_numeric_1000000r_10c_4ch
+  Configuration: 1,000,000 rows × 10 cols, numeric content, 47.68 MB
+    1. sonicsv_batching  3010.47 MB/s
+    2. sonicsv_mt        772.24 MB/s
+    3. libcsv_mt         565.09 MB/s
+    4. arrow             396.50 MB/s
+    5. d99kris           363.59 MB/s
+    6. rapidcsv          357.25 MB/s
+    7. sonicsv_streaming   331.82 MB/s
+    8. libcsv            138.53 MB/s
+    9. semitrivial        70.51 MB/s
+    10. ariasdiniz         12.33 MB/s
+
+Scenario: csv_mixed_1000000r_10c_4ch
+  Configuration: 1,000,000 rows × 10 cols, mixed content, 47.68 MB
+    1. sonicsv_batching  3163.77 MB/s
+    2. sonicsv_mt        810.41 MB/s
+    3. libcsv_mt         552.16 MB/s
+    4. arrow             442.20 MB/s
+    5. d99kris           369.98 MB/s
+    6. rapidcsv          351.59 MB/s
+    7. sonicsv_streaming   321.70 MB/s
+    8. libcsv            140.25 MB/s
+    9. semitrivial        69.75 MB/s
+    10. ariasdiniz         12.32 MB/s
+
+Scenario: csv_numeric_1000000r_5c_16ch
+  Configuration: 1,000,000 rows × 5 cols, numeric content, 81.06 MB
+    1. sonicsv_batching  3443.36 MB/s
+    2. sonicsv_mt       1093.92 MB/s
+    3. sonicsv_streaming   840.68 MB/s
+    4. arrow             739.35 MB/s
+    5. libcsv_mt         689.00 MB/s
+    6. rapidcsv          375.82 MB/s
+    7. d99kris           373.27 MB/s
+    8. libcsv            139.88 MB/s
+    9. semitrivial       118.65 MB/s
+    10. ariasdiniz         20.49 MB/s
+
+Scenario: csv_mixed_1000000r_5c_16ch
+  Configuration: 1,000,000 rows × 5 cols, mixed content, 81.06 MB
+    1. sonicsv_batching  3985.78 MB/s
+    2. sonicsv_mt       1003.60 MB/s
+    3. sonicsv_streaming   841.35 MB/s
+    4. arrow             759.85 MB/s
+    5. libcsv_mt         643.16 MB/s
+    6. rapidcsv          382.91 MB/s
+    7. d99kris           365.22 MB/s
+    8. libcsv            139.61 MB/s
+    9. semitrivial       118.06 MB/s
+    10. ariasdiniz         20.47 MB/s
+
+Scenario: csv_numeric_1000000r_10c_8ch
+  Configuration: 1,000,000 rows × 10 cols, numeric content, 85.83 MB
+    1. sonicsv_batching  3386.10 MB/s
+    2. sonicsv_mt        949.69 MB/s
+    3. arrow             635.10 MB/s
+    4. libcsv_mt         629.83 MB/s
+    5. sonicsv_streaming   587.50 MB/s
+    6. d99kris           378.20 MB/s
+    7. rapidcsv          367.51 MB/s
+    8. libcsv            138.39 MB/s
+    9. semitrivial        97.70 MB/s
+    10. ariasdiniz         21.59 MB/s
+
+Scenario: csv_mixed_1000000r_10c_8ch
+  Configuration: 1,000,000 rows × 10 cols, mixed content, 85.83 MB
+    1. sonicsv_batching  3694.33 MB/s
+    2. sonicsv_mt        996.55 MB/s
+    3. arrow             636.24 MB/s
+    4. libcsv_mt         615.26 MB/s
+    5. sonicsv_streaming   530.90 MB/s
+    6. rapidcsv          375.84 MB/s
+    7. d99kris           375.58 MB/s
+    8. libcsv            140.60 MB/s
+    9. semitrivial        99.26 MB/s
+    10. ariasdiniz         21.63 MB/s
+
+Scenario: csv_numeric_1000000r_20c_4ch
+  Configuration: 1,000,000 rows × 20 cols, numeric content, 95.37 MB
+    1. sonicsv_batching  3979.61 MB/s
+    2. sonicsv_mt        922.01 MB/s
+    3. libcsv_mt         644.38 MB/s
+    4. arrow             536.46 MB/s
+    5. d99kris           376.87 MB/s
+    6. rapidcsv          372.21 MB/s
+    7. sonicsv_streaming   345.43 MB/s
+    8. libcsv            140.39 MB/s
+    9. semitrivial        72.71 MB/s
+    10. ariasdiniz         23.70 MB/s
+
+Scenario: csv_mixed_1000000r_20c_4ch
+  Configuration: 1,000,000 rows × 20 cols, mixed content, 95.37 MB
+    1. sonicsv_batching  3886.53 MB/s
+    2. sonicsv_mt        975.73 MB/s
+    3. arrow             628.51 MB/s
+    4. libcsv_mt         579.69 MB/s
+    5. rapidcsv          378.84 MB/s
+    6. d99kris           368.73 MB/s
+    7. sonicsv_streaming   334.57 MB/s
+    8. libcsv            140.31 MB/s
+    9. semitrivial        72.68 MB/s
+    10. ariasdiniz         23.94 MB/s
+
+Scenario: csv_numeric_1000000r_10c_16ch
+  Configuration: 1,000,000 rows × 10 cols, numeric content, 162.12 MB
+    1. sonicsv_batching  4449.90 MB/s
+    2. sonicsv_mt       1106.87 MB/s
+    3. arrow             991.83 MB/s
+    4. sonicsv_streaming   962.10 MB/s
+    5. libcsv_mt         722.01 MB/s
+    6. d99kris           376.38 MB/s
+    7. rapidcsv          372.79 MB/s
+    8. libcsv            141.52 MB/s
+    9. semitrivial       128.19 MB/s
+    10. ariasdiniz         39.17 MB/s
+
+Scenario: csv_mixed_1000000r_10c_16ch
+  Configuration: 1,000,000 rows × 10 cols, mixed content, 162.12 MB
+    1. sonicsv_batching  3915.55 MB/s
+    2. sonicsv_mt       1189.86 MB/s
+    3. arrow             948.98 MB/s
+    4. sonicsv_streaming   945.47 MB/s
+    5. libcsv_mt         689.31 MB/s
+    6. d99kris           378.89 MB/s
+    7. rapidcsv          374.64 MB/s
+    8. libcsv            141.88 MB/s
+    9. semitrivial       127.21 MB/s
+    10. ariasdiniz         39.20 MB/s
+
+Scenario: csv_numeric_1000000r_20c_8ch
+  Configuration: 1,000,000 rows × 20 cols, numeric content, 171.66 MB
+    1. sonicsv_batching  3915.92 MB/s
+    2. sonicsv_mt       1019.74 MB/s
+    3. arrow             851.55 MB/s
+    4. libcsv_mt         667.94 MB/s
+    5. sonicsv_streaming   578.91 MB/s
+    6. rapidcsv          383.30 MB/s
+    7. d99kris           377.17 MB/s
+    8. libcsv            142.50 MB/s
+    9. semitrivial        99.71 MB/s
+    10. ariasdiniz         41.03 MB/s
+
+Scenario: csv_mixed_1000000r_20c_8ch
+  Configuration: 1,000,000 rows × 20 cols, mixed content, 171.66 MB
+    1. sonicsv_batching  4246.12 MB/s
+    2. sonicsv_mt       1054.85 MB/s
+    3. arrow             815.59 MB/s
+    4. libcsv_mt         629.92 MB/s
+    5. sonicsv_streaming   578.47 MB/s
+    6. d99kris           381.66 MB/s
+    7. rapidcsv          377.01 MB/s
+    8. libcsv            142.70 MB/s
+    9. semitrivial        99.03 MB/s
+    10. ariasdiniz         40.93 MB/s
+
+Scenario: csv_numeric_1000000r_20c_16ch
+  Configuration: 1,000,000 rows × 20 cols, numeric content, 324.25 MB
+    1. sonicsv_batching  4481.62 MB/s
+    2. sonicsv_mt       1213.96 MB/s
+    3. arrow            1120.56 MB/s
+    4. sonicsv_streaming   941.84 MB/s
+    5. libcsv_mt         776.88 MB/s
+    6. d99kris           386.33 MB/s
+    7. rapidcsv          385.04 MB/s
+    8. libcsv            140.26 MB/s
+    9. semitrivial       128.74 MB/s
+    10. ariasdiniz         71.74 MB/s
+
+Scenario: csv_mixed_1000000r_20c_16ch
+  Configuration: 1,000,000 rows × 20 cols, mixed content, 324.25 MB
+    1. sonicsv_batching  4408.86 MB/s
+    2. sonicsv_mt       1192.98 MB/s
+    3. arrow            1105.55 MB/s
+    4. sonicsv_streaming   941.73 MB/s
+    5. libcsv_mt         770.37 MB/s
+    6. d99kris           387.69 MB/s
+    7. rapidcsv          381.65 MB/s
+    8. libcsv            143.24 MB/s
+    9. semitrivial       128.04 MB/s
+    10. ariasdiniz         71.66 MB/s
