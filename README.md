@@ -437,7 +437,7 @@ int main() {
 - You want fine-grained control over work distribution
 - Processing multiple files simultaneously
 
-## 🔧 Configuration Options
+## Configuration Options
 
 ### Parse Options
 
@@ -471,7 +471,7 @@ typedef struct {
 } csv_block_config_t;
 ```
 
-## 📈 Performance Tuning
+## Performance Tuning
 
 ### SIMD Optimization
 
@@ -508,7 +508,7 @@ config.num_threads = 16;  // Match your CPU core count
 config.block_size = 2 * 1024 * 1024;  // 2MB blocks for large files
 ```
 
-## 🔍 Error Handling
+## Error Handling
 
 SonicSV provides comprehensive error handling:
 
@@ -532,7 +532,7 @@ csv_parser_set_error_callback(parser, error_callback, NULL);
 - `CSV_ERROR_IO_ERROR`: File I/O error
 - `CSV_ERROR_PARSE_ERROR`: General parsing error
 
-## 🧪 Testing and Benchmarks
+## Testing and Benchmarks
 
 ### Running Tests
 
@@ -572,17 +572,17 @@ go run benchmark_runner.go --quick --iterations 1
 - **SIMD Detection**: Automatically detects and utilizes available SIMD features
 
 
-## 📄 License
+## License
 
 SonicSV is released under the MIT License. See [LICENSE](LICENSE) for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Inspired by high-performance CSV parsers like simdjson
 - SIMD optimization techniques from various open-source projects
 - Community feedback and contributions
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Vitruves/SonicSV/issues)
 
