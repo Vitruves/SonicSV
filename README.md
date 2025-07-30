@@ -2,6 +2,9 @@
 
 A fast, single-header CSV parser library written in C with SIMD optimizations and comprehensive error handling.
 
+<img width="369" height="262" alt="image-9" src="https://github.com/user-attachments/assets/a4c60361-5745-4c2b-a21f-ca363dbd2634" />
+
+
 ## Performance
 
 SonicSV consistently outperforms libcsv across all test configurations on both ARM and x86_64 architectures (average of 10 runs):
