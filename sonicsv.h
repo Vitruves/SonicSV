@@ -1405,6 +1405,29 @@ static __thread bool g_thread_pool_initialized = false;
    p->state = CSV_STATE_FIELD_START;
    p->instance_id = atomic_fetch_add_explicit(&g_next_parser_id, 1, memory_order_relaxed);
    p->simd_cache_initialized = false;
+  
+  // Explicitly initialize all pointer fields to NULL
+  p->unparsed_buffer = NULL;
+  p->fields = NULL;
+  p->field_buffer = NULL;
+  p->field_data_pool = NULL;
+  p->row_callback = NULL;
+  p->row_callback_data = NULL;
+  p->error_callback = NULL;
+  p->error_callback_data = NULL;
+  
+  // Initialize all size fields to 0
+  p->unparsed_size = 0;
+  p->unparsed_capacity = 0;
+  p->fields_capacity = 0;
+  p->num_fields = 0;
+  p->field_buffer_capacity = 0;
+  p->field_buffer_pos = 0;
+  p->field_data_pool_size = 0;
+  p->field_data_pool_capacity = 0;
+  p->peak_memory = 0;
+  p->current_row_start_offset = 0;
+  p->simd_features_cache = 0;
  
    // Initialize character classification table
    csv_init_char_table(p->options.delimiter, p->options.quote_char);
