@@ -28,11 +28,14 @@ all: test example
 # Build test executable
 test: $(TEST_BIN)
 	@echo "Running tests..."
+	@chmod +x $(TEST_BIN)
 	./$(TEST_BIN)
 
 $(TEST_BIN): $(TEST_SRC) $(HEADER)
 	@echo "Building test executable..."
 	$(CC) $(CFLAGS) -DSONICSV_IMPLEMENTATION -o $(TEST_BIN) $(TEST_SRC) $(LDFLAGS)
+	@if [ ! -f $(TEST_BIN) ]; then echo "Error: Test executable was not created"; exit 1; fi
+	@if [ ! -x $(TEST_BIN) ]; then echo "Error: Test executable is not executable"; exit 1; fi
 
 # Build example executable
 example: $(EXAMPLE_BIN)

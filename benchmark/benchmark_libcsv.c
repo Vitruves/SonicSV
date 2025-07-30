@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "/opt/homebrew/opt/libcsv/include/csv.h"
+#include <csv.h>
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {

@@ -5,7 +5,6 @@
  * Compile with: gcc -std=c11 -O2 -o example example.c -lm -lpthread
  */
 
-#define SONICSV_IMPLEMENTATION
 #include "../sonicsv.h"
 
 #include <stdio.h>
@@ -28,6 +27,7 @@ void row_callback(const csv_row_t *row, void *user_data) {
 // Error callback to handle parsing errors
 void error_callback(csv_error_t error, const char *message, 
                    uint64_t row_number, void *user_data) {
+    (void)user_data;  // Suppress unused parameter warning
     fprintf(stderr, "Error on row %llu: %s (%s)\n", 
             (unsigned long long)row_number, message, csv_error_string(error));
 }
