@@ -373,7 +373,7 @@
  } csv_memory_pool_t;
  
  // Ensure proper initialization of thread-local storage
-static __thread csv_memory_pool_t g_thread_pool;
+static __thread csv_memory_pool_t g_thread_pool = {0};
 static __thread bool g_thread_pool_initialized = false;
  
  #define CSV_ALLOC_MAGIC 0xDEADBEEF
@@ -552,8 +552,8 @@ static __thread bool g_thread_pool_initialized = false;
  #define CSV_GROWTH_FACTOR 1.5  // Less aggressive growth to reduce memory waste
  
  // Replace global variables with thread-local or atomic operations
- static atomic_uint g_simd_features_atomic = CSV_SIMD_NONE;
- static atomic_bool g_simd_initialized_atomic = false;
+ static atomic_uint g_simd_features_atomic = ATOMIC_VAR_INIT(CSV_SIMD_NONE);
+ static atomic_bool g_simd_initialized_atomic = ATOMIC_VAR_INIT(false);
  
  // Parser state machine
  typedef enum {
@@ -570,7 +570,7 @@ static __thread bool g_thread_pool_initialized = false;
    uint64_t cache_misses;
  } csv_thread_stats_t;
  
- static __thread csv_thread_stats_t g_thread_stats = {0};
+ static __thread csv_thread_stats_t g_thread_stats = {0, 0, 0, 0};
  
  // Character classification lookup table for optimized parsing
  static const uint8_t csv_char_class_table[256] = {
@@ -589,7 +589,7 @@ static __thread bool g_thread_pool_initialized = false;
  #define CSV_CHAR_DELIMITER    3  // Comma (updated dynamically)
  #define CSV_CHAR_QUOTE        4  // Quote character (updated dynamically)
  
- static __thread uint8_t g_char_table[256];
+ static __thread uint8_t g_char_table[256] = {0};
  static __thread bool g_char_table_initialized = false;
  
  // Initialize character classification table for current parser
@@ -597,10 +597,10 @@ static __thread bool g_thread_pool_initialized = false;
      if (g_char_table_initialized) return;
  
      // Explicitly zero-initialize the entire table first
-     memset(g_char_table, 0, 256);
+     memset(g_char_table, 0, sizeof(g_char_table));
      
      // Copy base table
-     memcpy(g_char_table, csv_char_class_table, 256);
+     memcpy(g_char_table, csv_char_class_table, sizeof(csv_char_class_table));
  
      // Set delimiter and quote character
      g_char_table[(uint8_t)delimiter] = CSV_CHAR_DELIMITER;
