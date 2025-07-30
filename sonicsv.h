@@ -372,7 +372,9 @@
      bool initialized;
  } csv_memory_pool_t;
  
- static __thread csv_memory_pool_t g_thread_pool = {0};
+ // Ensure proper initialization of thread-local storage
+static __thread csv_memory_pool_t g_thread_pool;
+static __thread bool g_thread_pool_initialized = false;
  
  #define CSV_ALLOC_MAGIC 0xDEADBEEF
  static atomic_size_t g_total_allocated = 0;
@@ -403,7 +405,10 @@
  
  // Initialize memory pool size classes
  static sonicsv_cold void csv_init_memory_pool(void) {
-     if (g_thread_pool.initialized) return;
+     if (g_thread_pool_initialized) return;
+
+    // Explicitly zero-initialize the entire structure
+    memset(&g_thread_pool, 0, sizeof(g_thread_pool));
  
      // Power-of-2 size classes optimized for CSV parsing
      size_t sizes[] = {64, 128, 256, 512, 1024, 2048, 4096, 8192,
@@ -415,6 +420,7 @@
          g_thread_pool.free_counts[i] = 0;
      }
      g_thread_pool.initialized = true;
+    g_thread_pool_initialized = true;
  }
  
  // Find appropriate size class
@@ -428,7 +434,7 @@
  // Try to get block from recycling pool
  static sonicsv_always_inline void* csv_pool_alloc(size_t size, size_t alignment) {
      (void)alignment; // Suppress unused parameter warning
-     if (!g_thread_pool.initialized) csv_init_memory_pool();
+     if (!g_thread_pool_initialized) csv_init_memory_pool();
  
      int class_idx = csv_find_size_class(size + sizeof(csv_alloc_header_t));
      if (class_idx >= 0 && g_thread_pool.free_counts[class_idx] > 0) {
@@ -443,7 +449,7 @@
  
  // Return block to recycling pool
  static sonicsv_always_inline bool csv_pool_free(void* ptr, size_t size) {
-     if (!g_thread_pool.initialized) return false;
+     if (!g_thread_pool_initialized) return false;
  
      int class_idx = csv_find_size_class(size + sizeof(csv_alloc_header_t));
      if (class_idx >= 0 && g_thread_pool.free_counts[class_idx] < 8) { // Limit pool size
@@ -590,6 +596,9 @@
  static sonicsv_cold void csv_init_char_table(char delimiter, char quote_char) {
      if (g_char_table_initialized) return;
  
+     // Explicitly zero-initialize the entire table first
+     memset(g_char_table, 0, 256);
+     
      // Copy base table
      memcpy(g_char_table, csv_char_class_table, 256);
  

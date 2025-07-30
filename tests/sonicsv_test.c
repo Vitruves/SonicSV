@@ -1,4 +1,3 @@
-#define SONICSV_IMPLEMENTATION
 #include "../sonicsv.h"
 #include <assert.h>
 #include <string.h>
