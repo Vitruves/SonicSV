@@ -437,11 +437,14 @@ static __thread bool g_thread_pool_initialized = false;
      if (!g_thread_pool_initialized) csv_init_memory_pool();
  
      int class_idx = csv_find_size_class(size + sizeof(csv_alloc_header_t));
-     if (class_idx >= 0 && g_thread_pool.free_counts[class_idx] > 0) {
+     if (false && class_idx >= 0 && g_thread_pool.free_counts[class_idx] > 0) {
          // Reuse from pool
          void* block = g_thread_pool.free_blocks[class_idx];
          g_thread_pool.free_blocks[class_idx] = *(void**)block;
          g_thread_pool.free_counts[class_idx]--;
+         // Zero-initialize recycled memory to prevent stale data issues (skip header)
+         char* user_block = (char*)block + sizeof(csv_alloc_header_t);
+         memset(user_block, 0, g_thread_pool.block_sizes[class_idx] - sizeof(csv_alloc_header_t));
          return block;
      }
      return NULL;
@@ -499,6 +502,8 @@ static __thread bool g_thread_pool_initialized = false;
          user_ptr += alignment - misalignment;
      }
  
+     // Zero-initialize only the user portion to prevent uninitialized value errors
+     memset(user_ptr, 0, size);
      return user_ptr;
  }
  
