@@ -1,153 +1,137 @@
-# SonicSV - Fast SIMD-Accelerated CSV Parser
-# Minimal Makefile for header installation with SIMD detection
+# SonicSV Makefile
+# Simple build system for testing, installation, and CPU detection
 
-# Installation directories
+# Compiler and flags
+CC = gcc
+CFLAGS = -std=c99 -O3 -Wall -Wextra -march=native
+LDFLAGS = -lpthread
+
+# Installation paths
 PREFIX ?= /usr/local
-INSTALL_INCLUDE_DIR = $(PREFIX)/include
+BINDIR = $(PREFIX)/bin
+INCLUDEDIR = $(PREFIX)/include
 
-# Header file
-HEADER_FILE = include/sonicsv.h
+# Source files
+HEADER = sonicsv.h
+TEST_SRC = tests/sonicsv_test.c
+EXAMPLE_SRC = example/example.c
 
-# Colors for output
-RED = \033[0;31m
-GREEN = \033[0;32m
-YELLOW = \033[0;33m
-BLUE = \033[0;34m
-NC = \033[0m
-
-# SIMD detection variables
-ARCH := $(shell uname -m)
-CPU_INFO := /proc/cpuinfo
+# Binaries
+TEST_BIN = tests/sonicsv_test
+EXAMPLE_BIN = example/example
+CPU_DETECT_BIN = cpu_detect
 
 # Default target
-.PHONY: all
-all: detect-simd install
+.PHONY: all test example cpu-detect install uninstall clean help
+all: test example
 
-# Detect SIMD capabilities
-.PHONY: detect-simd
-detect-simd:
-	@echo "$(BLUE)-i-- Detecting SIMD capabilities$(NC)"
-	@echo "$(BLUE)-i-- Architecture: $(ARCH)$(NC)"
-ifeq ($(ARCH),x86_64)
-	@echo "$(BLUE)-i-- Checking x86_64 SIMD features$(NC)"
-	@if grep -q "sse4_2" $(CPU_INFO); then \
-		echo "$(GREEN)-s-- SSE4.2 support detected$(NC)"; \
-	else \
-		echo "$(YELLOW)-w-- SSE4.2 not detected$(NC)"; \
-	fi
-	@if grep -q "avx2" $(CPU_INFO); then \
-		echo "$(GREEN)-s-- AVX2 support detected$(NC)"; \
-	else \
-		echo "$(YELLOW)-w-- AVX2 not detected$(NC)"; \
-	fi
-	@if grep -q "avx512" $(CPU_INFO); then \
-		echo "$(GREEN)-s-- AVX512 support detected$(NC)"; \
-	else \
-		echo "$(BLUE)-i-- AVX512 not detected (not required)$(NC)"; \
-	fi
-else ifeq ($(ARCH),aarch64)
-	@echo "$(BLUE)-i-- Checking ARM64 SIMD features$(NC)"
-	@if grep -q "asimd" $(CPU_INFO) || grep -q "neon" $(CPU_INFO); then \
-		echo "$(GREEN)-s-- NEON support detected$(NC)"; \
-	else \
-		echo "$(YELLOW)-w-- NEON not detected$(NC)"; \
-	fi
-else
-	@echo "$(YELLOW)-w-- Architecture $(ARCH) - SIMD detection limited$(NC)"
-	@echo "$(BLUE)-i-- SonicSV will fall back to scalar implementation$(NC)"
-endif
-	@echo "$(GREEN)-s-- SIMD detection completed$(NC)"
+# Build test executable
+test: $(TEST_BIN)
+	@echo "Running tests..."
+	./$(TEST_BIN)
 
-# Install header
-.PHONY: install
-install: $(HEADER_FILE)
-	@echo "$(BLUE)-i-- Installing SonicSV header$(NC)"
-	@if [ ! -f "$(HEADER_FILE)" ]; then \
-		echo "$(RED)-e-- Header file $(HEADER_FILE) not found$(NC)"; \
-		exit 1; \
-	fi
-	@mkdir -p $(INSTALL_INCLUDE_DIR)
-	@cp $(HEADER_FILE) $(INSTALL_INCLUDE_DIR)/
-	@chmod 644 $(INSTALL_INCLUDE_DIR)/sonicsv.h
-	@echo "$(GREEN)-s-- SonicSV header installed to $(INSTALL_INCLUDE_DIR)/sonicsv.h$(NC)"
+$(TEST_BIN): $(TEST_SRC) $(HEADER)
+	@echo "Building test executable..."
+	$(CC) $(CFLAGS) -DSONICSV_IMPLEMENTATION -o $(TEST_BIN) $(TEST_SRC) $(LDFLAGS)
 
-# Uninstall header
-.PHONY: uninstall
+# Build example executable
+example: $(EXAMPLE_BIN)
+
+$(EXAMPLE_BIN): $(EXAMPLE_SRC) $(HEADER)
+	@echo "Building example..."
+	$(CC) $(CFLAGS) -DSONICSV_IMPLEMENTATION -o $(EXAMPLE_BIN) $(EXAMPLE_SRC) $(LDFLAGS)
+
+# CPU detection utility
+cpu-detect: $(CPU_DETECT_BIN)
+	@echo "Detecting CPU features..."
+	./$(CPU_DETECT_BIN)
+
+$(CPU_DETECT_BIN): cpu_detect.c $(HEADER)
+	@echo "Building CPU detection utility..."
+	$(CC) $(CFLAGS) -DSONICSV_IMPLEMENTATION -o $(CPU_DETECT_BIN) cpu_detect.c $(LDFLAGS)
+
+cpu_detect.c:
+	@echo "Creating CPU detection utility..."
+	@echo '#define SONICSV_IMPLEMENTATION' > cpu_detect.c
+	@echo '#include "sonicsv.h"' >> cpu_detect.c
+	@echo '#include <stdio.h>' >> cpu_detect.c
+	@echo '' >> cpu_detect.c
+	@echo 'int main() {' >> cpu_detect.c
+	@echo '    printf("SonicSV CPU Feature Detection\\n");' >> cpu_detect.c
+	@echo '    printf("============================\\n");' >> cpu_detect.c
+	@echo '    ' >> cpu_detect.c
+	@echo '    uint32_t features = csv_get_simd_features();' >> cpu_detect.c
+	@echo '    ' >> cpu_detect.c
+	@echo '    printf("Detected SIMD features:\\n");' >> cpu_detect.c
+	@echo '    if (features == CSV_SIMD_NONE) {' >> cpu_detect.c
+	@echo '        printf("  - None (scalar fallback)\\n");' >> cpu_detect.c
+	@echo '    } else {' >> cpu_detect.c
+	@echo '        if (features & CSV_SIMD_SSE4_2) printf("  - SSE4.2\\n");' >> cpu_detect.c
+	@echo '        if (features & CSV_SIMD_AVX2) printf("  - AVX2\\n");' >> cpu_detect.c
+	@echo '        if (features & CSV_SIMD_AVX512) printf("  - AVX-512\\n");' >> cpu_detect.c
+	@echo '        if (features & CSV_SIMD_NEON) printf("  - NEON\\n");' >> cpu_detect.c
+	@echo '        if (features & CSV_SIMD_SVE) printf("  - SVE\\n");' >> cpu_detect.c
+	@echo '    }' >> cpu_detect.c
+	@echo '    ' >> cpu_detect.c
+	@echo '    printf("\\nArchitecture info:\\n");' >> cpu_detect.c
+	@echo '#ifdef __x86_64__' >> cpu_detect.c
+	@echo '    printf("  - Architecture: x86_64\\n");' >> cpu_detect.c
+	@echo '#elif defined(__aarch64__)' >> cpu_detect.c
+	@echo '    printf("  - Architecture: ARM64\\n");' >> cpu_detect.c
+	@echo '#elif defined(__arm__)' >> cpu_detect.c
+	@echo '    printf("  - Architecture: ARM32\\n");' >> cpu_detect.c
+	@echo '#else' >> cpu_detect.c
+	@echo '    printf("  - Architecture: Other\\n");' >> cpu_detect.c
+	@echo '#endif' >> cpu_detect.c
+	@echo '    ' >> cpu_detect.c
+	@echo '#ifdef __GNUC__' >> cpu_detect.c
+	@echo '    printf("  - Compiler: GCC %d.%d.%d\\n", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);' >> cpu_detect.c
+	@echo '#elif defined(__clang__)' >> cpu_detect.c
+	@echo '    printf("  - Compiler: Clang\\n");' >> cpu_detect.c
+	@echo '#else' >> cpu_detect.c
+	@echo '    printf("  - Compiler: Unknown\\n");' >> cpu_detect.c
+	@echo '#endif' >> cpu_detect.c
+	@echo '    ' >> cpu_detect.c
+	@echo '    printf("\\nSIMD alignment: %d bytes\\n", SONICSV_SIMD_ALIGN);' >> cpu_detect.c
+	@echo '    printf("Cache line size: %d bytes\\n", SONICSV_CACHE_LINE_SIZE);' >> cpu_detect.c
+	@echo '    ' >> cpu_detect.c
+	@echo '    return 0;' >> cpu_detect.c
+	@echo '}' >> cpu_detect.c
+
+# Install header file
+install: $(HEADER)
+	@echo "Installing SonicSV to $(PREFIX)..."
+	@mkdir -p $(INCLUDEDIR)
+	@cp $(HEADER) $(INCLUDEDIR)/
+	@echo "Header installed to $(INCLUDEDIR)/$(HEADER)"
+	@echo "Include in your projects with: #include <sonicsv.h>"
+
+# Uninstall
 uninstall:
-	@echo "$(BLUE)-i-- Uninstalling SonicSV header$(NC)"
-	@if [ -f "$(INSTALL_INCLUDE_DIR)/sonicsv.h" ]; then \
-		rm -f $(INSTALL_INCLUDE_DIR)/sonicsv.h; \
-		echo "$(GREEN)-s-- SonicSV header uninstalled$(NC)"; \
-	else \
-		echo "$(YELLOW)-w-- SonicSV header not found at $(INSTALL_INCLUDE_DIR)/sonicsv.h$(NC)"; \
-	fi
+	@echo "Uninstalling SonicSV from $(PREFIX)..."
+	@rm -f $(INCLUDEDIR)/$(HEADER)
+	@echo "SonicSV uninstalled"
 
-# Test installation with SIMD detection
-.PHONY: test-install
-test-install: install
-	@echo "$(BLUE)-i-- Testing header installation with SIMD detection$(NC)"
-	@echo '#include <stdio.h>' > /tmp/test_sonicsv.c
-	@echo '#define SONICSV_IMPLEMENTATION' >> /tmp/test_sonicsv.c
-	@echo '#include <sonicsv.h>' >> /tmp/test_sonicsv.c
-	@echo 'int main() {' >> /tmp/test_sonicsv.c
-	@echo '    csv_simd_init();' >> /tmp/test_sonicsv.c
-	@echo '    uint32_t features = csv_simd_get_features();' >> /tmp/test_sonicsv.c
-	@echo '    printf("SIMD features detected: 0x%x\\n", features);' >> /tmp/test_sonicsv.c
-	@echo '    if (features & CSV_SIMD_SSE4_2) printf("  - SSE4.2\\n");' >> /tmp/test_sonicsv.c
-	@echo '    if (features & CSV_SIMD_AVX2) printf("  - AVX2\\n");' >> /tmp/test_sonicsv.c
-	@echo '    if (features & CSV_SIMD_NEON) printf("  - NEON\\n");' >> /tmp/test_sonicsv.c
-	@echo '    if (features == CSV_SIMD_NONE) printf("  - Scalar only\\n");' >> /tmp/test_sonicsv.c
-	@echo '    return 0;' >> /tmp/test_sonicsv.c
-	@echo '}' >> /tmp/test_sonicsv.c
-	@if gcc -O2 -march=native -std=c99 /tmp/test_sonicsv.c -o /tmp/test_sonicsv -lm -lpthread 2>/dev/null; then \
-		echo "$(GREEN)-s-- Header compilation test passed$(NC)"; \
-		echo "$(BLUE)-i-- Running SIMD feature detection:$(NC)"; \
-		/tmp/test_sonicsv; \
-		echo "$(GREEN)-s-- Header installation test completed$(NC)"; \
-	else \
-		echo "$(RED)-e-- Header compilation test failed$(NC)"; \
-		exit 1; \
-	fi
-	@rm -f /tmp/test_sonicsv.c /tmp/test_sonicsv
+# Clean build artifacts
+clean:
+	@echo "Cleaning build artifacts..."
+	@rm -f $(TEST_BIN) $(EXAMPLE_BIN) $(CPU_DETECT_BIN) cpu_detect.c
+	@echo "Clean complete"
 
-# Show installation status
-.PHONY: status
-status:
-	@echo "$(BLUE)-i-- SonicSV Installation Status$(NC)"
-	@echo "$(YELLOW)Installation directory:$(NC) $(INSTALL_INCLUDE_DIR)"
-	@if [ -f "$(INSTALL_INCLUDE_DIR)/sonicsv.h" ]; then \
-		echo "$(GREEN)-s-- SonicSV header is installed$(NC)"; \
-		echo "$(BLUE)-i-- File: $(INSTALL_INCLUDE_DIR)/sonicsv.h$(NC)"; \
-		echo "$(BLUE)-i-- Size: $$(stat -c%s $(INSTALL_INCLUDE_DIR)/sonicsv.h 2>/dev/null || echo 'unknown') bytes$(NC)"; \
-	else \
-		echo "$(YELLOW)-w-- SonicSV header is not installed$(NC)"; \
-	fi
-
-# Help target
-.PHONY: help
+# Help
 help:
-	@echo "$(BLUE)SonicSV - Fast SIMD-Accelerated CSV Parser$(NC)"
-	@echo "$(BLUE)Header-only library installation$(NC)"
+	@echo "SonicSV Makefile targets:"
+	@echo "  all        - Build test and example (default)"
+	@echo "  test       - Build and run tests"
+	@echo "  example    - Build example program"
+	@echo "  cpu-detect - Build and run CPU feature detection"
+	@echo "  install    - Install header to system (PREFIX=$(PREFIX))"
+	@echo "  uninstall  - Remove header from system"
+	@echo "  clean      - Remove build artifacts"
+	@echo "  help       - Show this help message"
 	@echo ""
-	@echo "$(YELLOW)Available targets:$(NC)"
-	@echo "  $(GREEN)install$(NC)       - Install SonicSV header to $(INSTALL_INCLUDE_DIR)"
-	@echo "  $(GREEN)uninstall$(NC)     - Remove installed SonicSV header"
-	@echo "  $(GREEN)detect-simd$(NC)   - Detect available SIMD features"
-	@echo "  $(GREEN)test-install$(NC)  - Test header installation and SIMD detection"
-	@echo "  $(GREEN)status$(NC)        - Show installation status"
-	@echo "  $(GREEN)help$(NC)          - Show this help message"
-	@echo ""
-	@echo "$(YELLOW)Environment variables:$(NC)"
-	@echo "  PREFIX        - Installation prefix (default: /usr/local)"
-	@echo ""
-	@echo "$(YELLOW)Examples:$(NC)"
-	@echo "  make install                    # Install to /usr/local/include"
-	@echo "  make PREFIX=/opt install        # Install to /opt/include"
-	@echo "  make detect-simd               # Check SIMD capabilities"
-	@echo "  make test-install              # Test installation with SIMD"
-	@echo ""
-	@echo "$(YELLOW)SIMD Support:$(NC)"
-	@echo "  x86_64: SSE4.2, AVX2 (runtime detection)"
-	@echo "  ARM64:  NEON (compile-time detection)"
-	@echo "  Other:  Scalar fallback"
-	@echo ""
+	@echo "Examples:"
+	@echo "  make test                    # Run tests"
+	@echo "  make cpu-detect              # Check CPU features"
+	@echo "  make install                 # Install to /usr/local"
+	@echo "  make install PREFIX=/opt     # Install to /opt"
