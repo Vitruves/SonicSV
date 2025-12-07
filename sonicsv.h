@@ -573,9 +573,9 @@ static sonicsv_always_inline void csv_aligned_free(void* ptr) {
  #define CSV_FIELD_DATA_POOL_INITIAL 32768
  #define CSV_GROWTH_FACTOR 1.5  // Less aggressive growth to reduce memory waste
  
- // Replace global variables with thread-local or atomic operations
- static atomic_uint g_simd_features_atomic = ATOMIC_VAR_INIT(CSV_SIMD_NONE);
- static atomic_bool g_simd_initialized_atomic = ATOMIC_VAR_INIT(false);
+ // SIMD feature detection - single atomic with initialized flag in high bit
+#define CSV_SIMD_INITIALIZED_FLAG 0x80000000U
+static atomic_uint g_simd_features_atomic = ATOMIC_VAR_INIT(0);
  
  // Parser state machine
  typedef enum {
@@ -617,9 +617,6 @@ static sonicsv_always_inline void csv_aligned_free(void* ptr) {
    struct timespec start_time;
    size_t peak_memory;
    uint64_t current_row_start_offset;
-   // Thread isolation - each parser has its own SIMD feature cache
-   uint32_t simd_features_cache;
-   bool simd_cache_initialized;
    // Parser instance ID for debugging
    uint64_t instance_id;
  } sonicsv_aligned(64);
@@ -682,25 +679,19 @@ static sonicsv_always_inline void csv_aligned_free(void* ptr) {
  }
  #endif
  
- static sonicsv_cold void csv_simd_init(void) {
-     if (atomic_load_explicit(&g_simd_initialized_atomic, memory_order_acquire)) {
-         return;
-     }
- 
-     uint32_t features = CSV_SIMD_NONE;
- 
- #ifdef __x86_64__
-     features = csv_detect_x86_features();
- #elif defined(__aarch64__)
-     features = csv_detect_arm_features();
- #else
-     // Fallback for other architectures
-     features = CSV_SIMD_NONE;
- #endif
- 
-     atomic_store_explicit(&g_simd_features_atomic, features, memory_order_release);
-     atomic_store_explicit(&g_simd_initialized_atomic, true, memory_order_release);
- }
+static sonicsv_cold uint32_t csv_simd_init(void) {
+    uint32_t features = CSV_SIMD_NONE;
+
+#ifdef __x86_64__
+    features = csv_detect_x86_features();
+#elif defined(__aarch64__)
+    features = csv_detect_arm_features();
+#endif
+
+    features |= CSV_SIMD_INITIALIZED_FLAG;
+    atomic_store_explicit(&g_simd_features_atomic, features, memory_order_relaxed);
+    return features;
+}
  
 // --- Search result struct ---
 typedef struct { const char *pos; size_t offset; } csv_search_result_t;
@@ -934,21 +925,14 @@ static sonicsv_force_inline void csv_prefetch_range(const char *data, size_t siz
     }
 }
 
-// Parser-isolated SIMD interface with per-instance caching
+// Parser-isolated SIMD interface
 static sonicsv_force_inline csv_search_result_t csv_find_special_char_with_parser(csv_parser_t *parser, const char *d, size_t s, char del, char quo, char nl, char cr) {
+    (void)parser; // Parser context no longer needed for SIMD dispatch
+
     // Prefetch ahead for large buffers
     if (s > 256) csv_prefetch_range(d, s);
 
-    // Use parser-specific cache to avoid contention
-    if (sonicsv_unlikely(!parser->simd_cache_initialized)) {
-        if (!atomic_load_explicit(&g_simd_initialized_atomic, memory_order_acquire)) {
-            csv_simd_init();
-        }
-        parser->simd_features_cache = atomic_load_explicit(&g_simd_features_atomic, memory_order_acquire);
-        parser->simd_cache_initialized = true;
-    }
- 
-     uint32_t features = parser->simd_features_cache;
+    uint32_t features = csv_get_simd_features();
  
      // Dispatch to best available implementation
  #ifdef __x86_64__
@@ -978,38 +962,28 @@ static sonicsv_force_inline csv_search_result_t csv_find_special_char_with_parse
      return csv_scalar_find_char(d, s, del, quo, nl, cr);
  }
  
- // Backward compatibility wrapper
- static sonicsv_force_inline csv_search_result_t csv_find_special_char(const char *d, size_t s, char del, char quo, char nl, char cr) {
-     // For cases where parser context is not available, use global cache
-     static __thread uint32_t cached_features = 0;
-     static __thread bool cache_initialized = false;
- 
-     if (sonicsv_unlikely(!cache_initialized)) {
-         if (!atomic_load_explicit(&g_simd_initialized_atomic, memory_order_acquire)) {
-             csv_simd_init();
-         }
-         cached_features = atomic_load_explicit(&g_simd_features_atomic, memory_order_acquire);
-         cache_initialized = true;
-     }
- 
- #ifdef __x86_64__
-     #ifdef HAVE_AVX2
-     if (sonicsv_likely(cached_features & CSV_SIMD_AVX2))
-         return csv_avx2_find_char(d, s, del, quo, nl, cr);
-     #endif
-     #ifdef HAVE_SSE4_2
-     if (sonicsv_likely(cached_features & CSV_SIMD_SSE4_2))
-         return csv_sse42_find_char(d, s, del, quo, nl, cr);
-     #endif
- #elif defined(__aarch64__)
-     #ifdef HAVE_NEON
-     if (sonicsv_likely(cached_features & CSV_SIMD_NEON))
-         return csv_neon_find_char(d, s, del, quo, nl, cr);
-     #endif
- #endif
- 
-     return csv_scalar_find_char(d, s, del, quo, nl, cr);
- }
+ // Backward compatibility wrapper (no parser context)
+static sonicsv_force_inline csv_search_result_t csv_find_special_char(const char *d, size_t s, char del, char quo, char nl, char cr) {
+    uint32_t features = csv_get_simd_features();
+
+#ifdef __x86_64__
+    #ifdef HAVE_AVX2
+    if (sonicsv_likely(features & CSV_SIMD_AVX2))
+        return csv_avx2_find_char(d, s, del, quo, nl, cr);
+    #endif
+    #ifdef HAVE_SSE4_2
+    if (sonicsv_likely(features & CSV_SIMD_SSE4_2))
+        return csv_sse42_find_char(d, s, del, quo, nl, cr);
+    #endif
+#elif defined(__aarch64__)
+    #ifdef HAVE_NEON
+    if (sonicsv_likely(features & CSV_SIMD_NEON))
+        return csv_neon_find_char(d, s, del, quo, nl, cr);
+    #endif
+#endif
+
+    return csv_scalar_find_char(d, s, del, quo, nl, cr);
+}
  
 // --- Enhanced helper functions ---
 // Enhanced memory allocation with overflow protection and growth strategy
@@ -1583,7 +1557,6 @@ csv_error_t csv_parse_buffer(csv_parser_t *p, const char *buf, size_t sz, bool i
    p->options = options ? *options : csv_default_options();
    p->state = CSV_STATE_FIELD_START;
    p->instance_id = atomic_fetch_add_explicit(&g_next_parser_id, 1, memory_order_relaxed);
-   p->simd_cache_initialized = false;
   
   // Explicitly initialize all pointer fields to NULL
   p->unparsed_buffer = NULL;
@@ -1606,7 +1579,6 @@ csv_error_t csv_parse_buffer(csv_parser_t *p, const char *buf, size_t sz, bool i
   p->field_data_pool_capacity = 0;
   p->peak_memory = 0;
   p->current_row_start_offset = 0;
-  p->simd_features_cache = 0;
   
   // Initialize stats structure and start_time
   memset(&p->stats, 0, sizeof(csv_stats_t));
@@ -1798,13 +1770,12 @@ csv_error_t csv_parse_file(csv_parser_t *p, const char *filename) {
    printf("\n---------------------------------\n");
  }
  
- uint32_t csv_get_simd_features(void) {
-   /* Ensure SIMD is initialized before returning features */
-   if (!atomic_load_explicit(&g_simd_initialized_atomic, memory_order_acquire)) {
-       csv_simd_init();
-   }
-   return atomic_load_explicit(&g_simd_features_atomic, memory_order_acquire);
- }
+uint32_t csv_get_simd_features(void) {
+    uint32_t v = atomic_load_explicit(&g_simd_features_atomic, memory_order_relaxed);
+    if (sonicsv_likely(v != 0))
+        return v & ~CSV_SIMD_INITIALIZED_FLAG;
+    return csv_simd_init() & ~CSV_SIMD_INITIALIZED_FLAG;
+}
  
  const csv_field_t *csv_get_field(const csv_row_t *row, size_t index) {
      if (!row || !row->fields || index >= row->num_fields) return NULL;
