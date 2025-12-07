@@ -359,17 +359,6 @@ void csv_string_pool_clear(csv_string_pool_t *pool);
      struct csv_alloc_header* prev;
  } csv_alloc_header_t;
  
- // Memory pool for recycling allocations
- typedef struct csv_memory_pool {
-     void* free_blocks[16]; // Different size classes
-     size_t free_counts[16];
-     size_t block_sizes[16];
-     bool initialized;
- } csv_memory_pool_t;
- 
- // Ensure proper initialization of thread-local storage
-static __thread csv_memory_pool_t g_thread_pool = {0};
-static __thread bool g_thread_pool_initialized = false;
 
 // Safe multiplication to prevent integer overflow
 static sonicsv_always_inline bool csv_safe_mul(size_t a, size_t b, size_t *result) {
@@ -405,83 +394,25 @@ static sonicsv_always_inline bool csv_safe_mul(size_t a, size_t b, size_t *resul
      }
  }
  
- // Initialize memory pool size classes
- static sonicsv_cold void csv_init_memory_pool(void) {
-     if (g_thread_pool_initialized) return;
-
-    // Explicitly zero-initialize the entire structure
-    memset(&g_thread_pool, 0, sizeof(g_thread_pool));
  
-     // Power-of-2 size classes optimized for CSV parsing
-     size_t sizes[] = {64, 128, 256, 512, 1024, 2048, 4096, 8192,
-                      16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152};
- 
-     for (int i = 0; i < 16; i++) {
-         g_thread_pool.block_sizes[i] = sizes[i];
-         g_thread_pool.free_blocks[i] = NULL;
-         g_thread_pool.free_counts[i] = 0;
-     }
-     g_thread_pool.initialized = true;
-    g_thread_pool_initialized = true;
- }
- 
-// Find appropriate size class using O(1) bit operations
-static sonicsv_always_inline int csv_find_size_class(size_t size) {
-    if (size == 0) return 0;
-    if (size > 2097152) return -1; // Too large for pool (> 2MB)
-
-    // Round up to next power of 2
-    size_t rounded = size - 1;
-    rounded |= rounded >> 1;
-    rounded |= rounded >> 2;
-    rounded |= rounded >> 4;
-    rounded |= rounded >> 8;
-    rounded |= rounded >> 16;
-#if SIZE_MAX > 0xFFFFFFFF
-    rounded |= rounded >> 32;
-#endif
-    rounded++;
-
-    // Find class index: log2(rounded) - 6 (smallest class is 64 = 2^6)
-    if (rounded <= 64) return 0;
-    int leading_zeros = __builtin_clzll((unsigned long long)rounded);
-    int log2_val = 63 - leading_zeros;
-    int class_idx = log2_val - 6;
-
-    return (class_idx >= 0 && class_idx < 16) ? class_idx : -1;
-}
  
 // Try to get block from recycling pool
+// NOTE: Pool recycling disabled due to size-class bug where blocks of different
+// sizes within the same class could be reused, causing buffer overflows.
+// See: https://github.com/anthropics/claude-code/issues/XXX
 static sonicsv_always_inline void* csv_pool_alloc(size_t size, size_t alignment) {
-    (void)alignment; // Suppress unused parameter warning
-    if (!g_thread_pool_initialized) csv_init_memory_pool();
-
-    int class_idx = csv_find_size_class(size + sizeof(csv_alloc_header_t));
-    if (class_idx >= 0 && g_thread_pool.free_counts[class_idx] > 0) {
-        // Reuse from pool - thread-local so no locking needed
-        void* block = g_thread_pool.free_blocks[class_idx];
-        if (block) {
-            g_thread_pool.free_blocks[class_idx] = *(void**)block;
-            g_thread_pool.free_counts[class_idx]--;
-            return block;
-        }
-    }
-    return NULL;
+    (void)size;
+    (void)alignment;
+    return NULL; // Disabled - always allocate fresh
 }
  
- // Return block to recycling pool
- static sonicsv_always_inline bool csv_pool_free(void* ptr, size_t size) {
-     if (!g_thread_pool_initialized) return false;
- 
-     int class_idx = csv_find_size_class(size + sizeof(csv_alloc_header_t));
-     if (class_idx >= 0 && g_thread_pool.free_counts[class_idx] < 8) { // Limit pool size
-         *(void**)ptr = g_thread_pool.free_blocks[class_idx];
-         g_thread_pool.free_blocks[class_idx] = ptr;
-         g_thread_pool.free_counts[class_idx]++;
-         return true;
-     }
-     return false;
- }
+// Return block to recycling pool
+// NOTE: Pool recycling disabled - see csv_pool_alloc comment
+static sonicsv_always_inline bool csv_pool_free(void* ptr, size_t size) {
+    (void)ptr;
+    (void)size;
+    return false; // Disabled - always free to system
+}
  
 // Safe memory-aligned buffer allocation with tracking and recycling
 // Uses a direct offset pointer for O(1) header lookup instead of magic number search
