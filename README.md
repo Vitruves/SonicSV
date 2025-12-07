@@ -1,5 +1,7 @@
 # SonicSV
 
+<img width="374" height="276" alt="sonicsv5_sized" src="https://github.com/user-attachments/assets/b3b4e68f-480a-4bb5-a930-9bf96bd6a91e" />
+
 [![Version](https://img.shields.io/badge/version-3.1.1-blue.svg)](https://github.com/vitruves/SonicSV)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/vitruves/SonicSV/blob/main/LICENSE)
 [![C99](https://img.shields.io/badge/standard-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
@@ -372,3 +374,4 @@ Contributions are welcome. Please:
 ## License
 
 MIT License - see `sonicsv.h` for details.
+
