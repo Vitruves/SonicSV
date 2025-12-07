@@ -4,6 +4,10 @@ CC = gcc
 CFLAGS = -std=c99 -O3 -Wall -Wextra -march=native -DSONICSV_IMPLEMENTATION
 LDFLAGS = -lpthread -lm
 
+# Installation paths
+PREFIX ?= /usr/local
+INSTALL_INCLUDE_DIR = $(PREFIX)/include
+
 # Directories
 BUILD_DIR = build
 TEST_DIR = tests
@@ -15,7 +19,7 @@ TEST_BIN = $(BUILD_DIR)/sonicsv_test
 BENCH_BIN = $(BUILD_DIR)/benchmark_suite
 EXAMPLE_BIN = $(BUILD_DIR)/example
 
-.PHONY: all test benchmark example clean help
+.PHONY: all test benchmark example install uninstall clean help
 
 all: test
 
@@ -47,6 +51,19 @@ example: $(EXAMPLE_BIN)
 $(EXAMPLE_BIN): $(EXAMPLE_DIR)/example.c sonicsv.h | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -o $@ $(EXAMPLE_DIR)/example.c $(LDFLAGS)
 
+# Install header to system
+install: sonicsv.h
+	@echo "Installing sonicsv.h to $(INSTALL_INCLUDE_DIR)/"
+	@mkdir -p $(INSTALL_INCLUDE_DIR)
+	@install -m 644 sonicsv.h $(INSTALL_INCLUDE_DIR)/sonicsv.h
+	@echo "Installation complete. Include with: #include <sonicsv.h>"
+
+# Uninstall header from system
+uninstall:
+	@echo "Removing sonicsv.h from $(INSTALL_INCLUDE_DIR)/"
+	@rm -f $(INSTALL_INCLUDE_DIR)/sonicsv.h
+	@echo "Uninstallation complete."
+
 clean:
 	rm -rf $(BUILD_DIR)
 
@@ -57,8 +74,13 @@ help:
 	@echo "  make test       - Build and run the test suite"
 	@echo "  make benchmark  - Build and run benchmarks (requires libcsv)"
 	@echo "  make example    - Build and run the example program"
+	@echo "  make install    - Install header to system (default: /usr/local/include)"
+	@echo "  make uninstall  - Remove header from system"
 	@echo "  make clean      - Remove build artifacts"
 	@echo "  make help       - Show this help message"
+	@echo ""
+	@echo "Installation options:"
+	@echo "  make install PREFIX=/custom/path  - Install to custom location"
 	@echo ""
 	@echo "Prerequisites for benchmark:"
 	@echo "  macOS:  brew install libcsv"
