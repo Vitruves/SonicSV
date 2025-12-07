@@ -119,17 +119,8 @@
      #define SONICSV_BIG_ENDIAN 1
  #endif
  
- // Byte swapping utilities for big-endian support
+ // Byte swapping for big-endian support (used in NEON path)
  #if SONICSV_BIG_ENDIAN
- static sonicsv_always_inline uint16_t csv_bswap16(uint16_t x) {
-     return (x << 8) | (x >> 8);
- }
- 
- static sonicsv_always_inline uint32_t csv_bswap32(uint32_t x) {
-     return ((x & 0xFF000000) >> 24) | ((x & 0x00FF0000) >> 8) |
-            ((x & 0x0000FF00) << 8)  | ((x & 0x000000FF) << 24);
- }
- 
  static sonicsv_always_inline uint64_t csv_bswap64(uint64_t x) {
      return ((x & 0xFF00000000000000ULL) >> 56) | ((x & 0x00FF000000000000ULL) >> 40) |
             ((x & 0x0000FF0000000000ULL) >> 24) | ((x & 0x000000FF00000000ULL) >> 8)  |
@@ -246,11 +237,6 @@ typedef struct sonicsv_aligned(8) {
    struct {
      uint64_t simd_ops;
      uint64_t scalar_fallbacks;
-     uint64_t reallocations;
-     uint64_t cache_misses;
-     uint64_t prefetch_hits;
-     uint64_t prefetch_misses;
-     uint64_t alignment_violations;
      double avg_field_size;
      double avg_row_size;
      double memory_efficiency;
@@ -385,13 +371,7 @@ void csv_string_pool_clear(csv_string_pool_t *pool);
 static __thread csv_memory_pool_t g_thread_pool = {0};
 static __thread bool g_thread_pool_initialized = false;
 
-// Safe arithmetic helpers to prevent integer overflow
-static sonicsv_always_inline bool csv_safe_add(size_t a, size_t b, size_t *result) {
-    if (a > SIZE_MAX - b) return false;
-    *result = a + b;
-    return true;
-}
-
+// Safe multiplication to prevent integer overflow
 static sonicsv_always_inline bool csv_safe_mul(size_t a, size_t b, size_t *result) {
     if (b != 0 && a > SIZE_MAX / b) return false;
     *result = a * b;
@@ -582,13 +562,9 @@ static sonicsv_always_inline void csv_aligned_free(void* ptr) {
  static sonicsv_always_inline size_t csv_get_allocated_memory(void) {
      return atomic_load_explicit(&g_total_allocated, memory_order_relaxed);
  }
- 
+
  static sonicsv_always_inline size_t csv_get_peak_memory(void) {
      return atomic_load_explicit(&g_peak_allocated, memory_order_relaxed);
- }
- 
- static sonicsv_always_inline size_t csv_get_allocation_count(void) {
-     return atomic_load_explicit(&g_allocation_count, memory_order_relaxed);
  }
  
  // Optimized buffer sizes based on typical CSV patterns
@@ -612,54 +588,10 @@ static sonicsv_always_inline void csv_aligned_free(void* ptr) {
  typedef struct {
    uint64_t simd_ops;
    uint64_t scalar_fallbacks;
-   uint64_t cache_hits;
-   uint64_t cache_misses;
  } csv_thread_stats_t;
- 
- static __thread csv_thread_stats_t g_thread_stats = {0, 0, 0, 0};
- 
- // Character classification lookup table for optimized parsing
- static const uint8_t csv_char_class_table[256] = {
-     // Use designated initializers for clarity and avoid excess elements
-     ['\t'] = 1,      // Tab is whitespace
-     ['\n'] = 2,      // Newline
-     ['\r'] = 2,      // Carriage return
-     [' '] = 1,       // Space is whitespace
-     // All other characters default to 0 (regular)
- };
- 
- // Character class definitions
- #define CSV_CHAR_REGULAR      0  // Regular character
- #define CSV_CHAR_WHITESPACE   1  // Space, tab
- #define CSV_CHAR_NEWLINE      2  // \n, \r
- #define CSV_CHAR_DELIMITER    3  // Comma (updated dynamically)
- #define CSV_CHAR_QUOTE        4  // Quote character (updated dynamically)
- 
- static __thread uint8_t g_char_table[256] = {0};
- static __thread bool g_char_table_initialized = false;
- 
- // Initialize character classification table for current parser
- static sonicsv_cold void csv_init_char_table(char delimiter, char quote_char) {
-     if (g_char_table_initialized) return;
- 
-     // Explicitly zero-initialize the entire table first
-     memset(g_char_table, 0, sizeof(g_char_table));
-     
-     // Copy base table
-     memcpy(g_char_table, csv_char_class_table, sizeof(csv_char_class_table));
- 
-     // Set delimiter and quote character
-     g_char_table[(uint8_t)delimiter] = CSV_CHAR_DELIMITER;
-     g_char_table[(uint8_t)quote_char] = CSV_CHAR_QUOTE;
- 
-     g_char_table_initialized = true;
- }
- 
- // Fast character classification
- static sonicsv_force_inline uint8_t csv_classify_char(char c) {
-     return g_char_table[(uint8_t)c];
- }
- 
+
+ static __thread csv_thread_stats_t g_thread_stats = {0, 0};
+
  // Internal parser structure - isolated and thread-safe
  struct csv_parser {
    csv_parse_options_t options;
@@ -994,66 +926,7 @@ static sonicsv_force_inline const char* csv_find_single_char(const char *d, size
    return (csv_search_result_t){NULL, s};
  }
  #endif
- 
- // Vectorized quote processing
- #ifdef HAVE_NEON
- static sonicsv_force_inline size_t csv_neon_process_quotes(const char *data, size_t size, char quote_char, char *out_buffer) {
-   if (size < 16) {
-     // Fallback to scalar for small buffers
-     size_t out_pos = 0;
-     for (size_t i = 0; i < size; i++) {
-       if (data[i] == quote_char && i + 1 < size && data[i + 1] == quote_char) {
-         out_buffer[out_pos++] = quote_char;
-         i++; // Skip the second quote
-       } else {
-         out_buffer[out_pos++] = data[i];
-       }
-     }
-     return out_pos;
-   }
- 
-   uint8x16_t v_quote = vdupq_n_u8((uint8_t)quote_char);
-   size_t i = 0, out_pos = 0;
- 
-   for (; i + 16 <= size; i += 16) {
-     uint8x16_t chunk = vld1q_u8((uint8_t const*)(data + i));
-     uint8x16_t quotes = vceqq_u8(chunk, v_quote);
- 
-     // Check if any quotes found in this chunk
-     uint64_t mask_lo = vgetq_lane_u64(vreinterpretq_u64_u8(quotes), 0);
-     uint64_t mask_hi = vgetq_lane_u64(vreinterpretq_u64_u8(quotes), 1);
- 
-     if (mask_lo == 0 && mask_hi == 0) {
-       // No quotes, copy entire chunk
-       vst1q_u8((uint8_t*)(out_buffer + out_pos), chunk);
-       out_pos += 16;
-     } else {
-       // Process byte by byte for this chunk due to quotes
-       for (int j = 0; j < 16 && i + j < size; j++) {
-         if (data[i + j] == quote_char && i + j + 1 < size && data[i + j + 1] == quote_char) {
-           out_buffer[out_pos++] = quote_char;
-           j++; // Skip next iteration
-         } else {
-           out_buffer[out_pos++] = data[i + j];
-         }
-       }
-     }
-   }
- 
-   // Process remaining bytes
-   for (; i < size; i++) {
-     if (data[i] == quote_char && i + 1 < size && data[i + 1] == quote_char) {
-       out_buffer[out_pos++] = quote_char;
-       i++;
-     } else {
-       out_buffer[out_pos++] = data[i];
-     }
-   }
- 
-   return out_pos;
- }
- #endif
- 
+
 // Aggressive prefetching for large buffers
 static sonicsv_force_inline void csv_prefetch_range(const char *data, size_t size) {
     for (size_t offset = 0; offset < size && offset < 2048; offset += SONICSV_CACHE_LINE_SIZE) {
@@ -1738,10 +1611,7 @@ csv_error_t csv_parse_buffer(csv_parser_t *p, const char *buf, size_t sz, bool i
   // Initialize stats structure and start_time
   memset(&p->stats, 0, sizeof(csv_stats_t));
   memset(&p->start_time, 0, sizeof(struct timespec));
- 
-   // Initialize character classification table
-   csv_init_char_table(p->options.delimiter, p->options.quote_char);
- 
+
    if (ensure_capacity((void**)&p->fields, &p->fields_capacity, CSV_INITIAL_FIELD_CAPACITY, sizeof(csv_field_t), p) != CSV_OK ||
        ensure_capacity((void**)&p->field_buffer, &p->field_buffer_capacity, CSV_INITIAL_BUFFER_CAPACITY, 1, p) != CSV_OK ||
        ensure_capacity((void**)&p->field_data_pool, &p->field_data_pool_capacity, CSV_FIELD_DATA_POOL_INITIAL, 1, p) != CSV_OK) {
