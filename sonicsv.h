@@ -2400,6 +2400,11 @@ static sonicsv_hot csv_error_t csv_parse_simple_fast(csv_parser_t *p, const char
         }
     }
 
+    if (p->num_fields > 0) {
+        csv_error_t err = csv_emit_unquoted_row(p, buf, row_start, end, max_row_size);
+        if (sonicsv_unlikely(err != CSV_OK)) return err;
+    }
+
     p->stats.total_bytes_processed += sz;
     return CSV_OK;
 }
