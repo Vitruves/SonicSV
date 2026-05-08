@@ -307,17 +307,20 @@
 #include <nmmintrin.h>
 #include <cpuid.h>
 #elif defined(_MSC_VER)
-// MSVC ships <immintrin.h> with intrinsics for SSE/AVX/AVX-512. Whether they
-// are *callable* depends on the compile-time /arch flag, but the header
-// defines the types we need either way and runtime dispatch is gated by
-// xgetbv-based feature detection below.
-#define HAVE_SSE4_2
-#define HAVE_AVX2
-#  if !defined(SONICSV_DISABLE_AVX512) && _MSC_VER >= 1911
-#    define HAVE_AVX512
-#  endif
-#include <immintrin.h>
+// MSVC accepts many x86 intrinsics even when the translation unit is compiled
+// without matching /arch flags. Runtime CPUID alone is not enough in that mode:
+// CI and downstream consumers often build the single-header implementation with
+// plain /O2, so keep the MSVC default scalar-correct. Projects that compile the
+// implementation TU with suitable /arch flags can opt in to the SIMD paths.
 #include <intrin.h>
+#  if defined(SONICSV_MSVC_ENABLE_SIMD)
+#    define HAVE_SSE4_2
+#    define HAVE_AVX2
+#    if !defined(SONICSV_DISABLE_AVX512) && _MSC_VER >= 1911
+#      define HAVE_AVX512
+#    endif
+#    include <immintrin.h>
+#  endif
  #endif
  #define SONICSV_SIMD_ALIGN 32
  #endif
@@ -936,6 +939,9 @@ static atomic_uint g_simd_features_atomic = 0;
          }
      }
  #elif defined(_MSC_VER)
+#  if !defined(SONICSV_MSVC_ENABLE_SIMD)
+     return features;
+#  else
      // MSVC equivalents: __cpuid / __cpuidex / _xgetbv. Bit positions match
      // the GCC <cpuid.h> bit_* constants by Intel SDM definitions, redefined
      // here so we don't depend on the header.
@@ -963,6 +969,7 @@ static atomic_uint g_simd_features_atomic = 0;
          if (os_avx512 && (info[1] & (1 << 16)) && (info[1] & (1 << 30)))
              features |= CSV_SIMD_AVX512;
      }
+#  endif
  #endif
      return features;
  }
@@ -1020,6 +1027,14 @@ static sonicsv_force_inline int csv_swar_find_first(uint64_t mask) {
 static sonicsv_force_inline csv_search_result_t csv_scalar_find_char(const char *d, size_t s, char c1, char c2, char c3, char c4) {
     if (sonicsv_unlikely(s == 0)) return (csv_search_result_t){NULL, 0};
 
+#if defined(_MSC_VER) && !defined(__clang__)
+    for (size_t i = 0; i < s; i++) {
+        char c = d[i];
+        if (c == c1 || c == c2 || c == c3 || c == c4)
+            return (csv_search_result_t){d + i, i};
+    }
+    return (csv_search_result_t){NULL, s};
+#else
     // Handle unaligned prefix
     size_t i = 0;
     size_t align_offset = (uintptr_t)d & 7;
@@ -1066,6 +1081,7 @@ static sonicsv_force_inline csv_search_result_t csv_scalar_find_char(const char 
     }
 
     return (csv_search_result_t){NULL, s};
+#endif
 }
 
 #ifdef HAVE_AVX512
@@ -1123,6 +1139,12 @@ static sonicsv_hot const char* csv_avx2_find_single_char(const char *d, size_t s
 static sonicsv_always_inline const char* csv_find_single_char(const char *d, size_t s, char target) {
     if (sonicsv_unlikely(s == 0)) return NULL;
 
+#if defined(_MSC_VER) && !defined(__clang__)
+    for (size_t i = 0; i < s; i++) {
+        if (d[i] == target) return d + i;
+    }
+    return NULL;
+#else
     size_t i = 0;
 
 #if defined(__x86_64__) || defined(_M_X64)
@@ -1189,6 +1211,7 @@ static sonicsv_always_inline const char* csv_find_single_char(const char *d, siz
     }
 
     return NULL;
+#endif
 }
 
 #ifdef HAVE_AVX512
@@ -1808,6 +1831,14 @@ static sonicsv_hot const char* csv_neon_find_delim_or_newline(const char *d, siz
 static sonicsv_always_inline const char* csv_find_delim_or_newline(const char *d, size_t s, char delim, uint32_t features) {
     if (s == 0) return NULL;
 
+#if defined(_MSC_VER) && !defined(__clang__)
+    (void)features;
+    for (size_t i = 0; i < s; i++) {
+        char c = d[i];
+        if (c == delim || c == '\n' || c == '\r') return d + i;
+    }
+    return NULL;
+#else
     size_t i = 0;
     uint64_t bc_delim = SWAR_BROADCAST(delim);
     uint64_t bc_nl = SWAR_BROADCAST('\n');
@@ -1927,6 +1958,7 @@ static sonicsv_always_inline const char* csv_find_delim_or_newline(const char *d
     }
 
     return NULL;
+#endif
 #endif
 }
 

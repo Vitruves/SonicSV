@@ -82,5 +82,9 @@ jobs:
       - name: Build & run C tests
         shell: cmd
         run: |
+          mkdir build
+          cl /nologo /std:c11 /O2 /W3 /DSONICSV_IMPLEMENTATION /I. tests\include_order_smoke.c /Fe:build\include_order_smoke.exe
+          cl /nologo /std:c11 /O2 /W3 /DSONICSV_IMPLEMENTATION /I. /c tests\sonicsv_impl.c /Fo:build\sonicsv_impl.obj
+          cl /nologo /EHsc /std:c++17 /O2 /W3 /I. tests\sonicsv_test.cpp build\sonicsv_impl.obj /Fe:build\sonicsv_test_cpp.exe
           cl /nologo /std:c11 /O2 /W3 /DSONICSV_IMPLEMENTATION /I. tests/sonicsv_test.c /Fe:sonicsv_test.exe
           sonicsv_test.exe

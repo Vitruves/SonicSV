@@ -1550,6 +1550,14 @@ static bool test_unquoted_literal_quote_nonstrict(void) {
  * SECTION 15: External Smoke Tests (run as separate binaries)
  * ============================================================================ */
 
+#ifdef _WIN32
+#define INCLUDE_ORDER_SMOKE_CMD "build\\include_order_smoke.exe"
+#define CPP_SMOKE_CMD "build\\sonicsv_test_cpp.exe"
+#else
+#define INCLUDE_ORDER_SMOKE_CMD "./build/include_order_smoke"
+#define CPP_SMOKE_CMD "./build/sonicsv_test_cpp"
+#endif
+
 /* Include-order smoke: a separate TU that includes <stdio.h> and friends
  * BEFORE sonicsv.h, then defines SONICSV_IMPLEMENTATION. On glibc this
  * exercises the case where the header's _POSIX_C_SOURCE / _DEFAULT_SOURCE
@@ -1557,7 +1565,7 @@ static bool test_unquoted_literal_quote_nonstrict(void) {
  * help, so this catches Makefile/CFLAGS regressions. The binary is built
  * by the Makefile (build/include_order_smoke); we just exec it. */
 static bool test_include_order_smoke_external(void) {
-    int rc = system("./build/include_order_smoke");
+    int rc = system(INCLUDE_ORDER_SMOKE_CMD);
     ASSERT_EQ(0, rc, "include_order_smoke binary returned non-zero");
     TEST_PASS();
     return true;
@@ -1567,7 +1575,7 @@ static bool test_include_order_smoke_external(void) {
  * its public API behaves under standard C++17. Built by the Makefile from
  * tests/sonicsv_test.cpp + a separate C implementation TU. */
 static bool test_cpp_smoke_external(void) {
-    int rc = system("./build/sonicsv_test_cpp");
+    int rc = system(CPP_SMOKE_CMD);
     ASSERT_EQ(0, rc, "C++ smoke binary returned non-zero");
     TEST_PASS();
     return true;
