@@ -2364,29 +2364,10 @@ static sonicsv_hot csv_error_t csv_parse_simple_fast(csv_parser_t *p, const char
 
         if (!found) {
             size_t field_size = (size_t)(end - field_start);
-            if (sonicsv_unlikely(field_size > max_field_size))
-                return report_error(p, CSV_ERROR_FIELD_TOO_LARGE, "Field size exceeds max_field_size");
-            if (sonicsv_unlikely(p->num_fields >= p->fields_capacity)) {
-                if (ensure_capacity((void**)&p->fields, &p->fields_capacity, p->num_fields + 1, sizeof(csv_field_t), p) != CSV_OK)
-                    return CSV_ERROR_OUT_OF_MEMORY;
-            }
-            p->fields[p->num_fields].data = field_start;
-            p->fields[p->num_fields].size = field_size;
-            p->fields[p->num_fields].quoted = false;
-            p->num_fields++;
-
-            size_t row_size = (size_t)(end - row_start) - (p->num_fields - 1);
-            if (sonicsv_unlikely(row_size > max_row_size))
-                return report_error(p, CSV_ERROR_ROW_TOO_LARGE, "Row size exceeds max_row_size");
-            p->stats.total_rows_parsed++;
-            p->stats.total_fields_parsed += p->num_fields;
-            p->sum_field_size += row_size;
-            p->sum_row_size   += row_size;
-            if (p->row_callback) {
-                csv_row_t row = {p->fields, p->num_fields, p->stats.total_rows_parsed, (size_t)(row_start - buf)};
-                p->row_callback(&row, p->row_callback_data);
-            }
-            p->num_fields = 0;
+            csv_error_t err = csv_emit_unquoted_field(p, field_start, field_size, max_field_size);
+            if (sonicsv_unlikely(err != CSV_OK)) return err;
+            err = csv_emit_unquoted_row(p, buf, row_start, end, max_row_size);
+            if (sonicsv_unlikely(err != CSV_OK)) return err;
             break;
         }
 
@@ -2410,19 +2391,8 @@ static sonicsv_hot csv_error_t csv_parse_simple_fast(csv_parser_t *p, const char
             pos++;
             field_start = pos;
         } else { // '\n' or '\r'
-            size_t row_size = (size_t)(pos - row_start) - (p->num_fields - 1);
-            if (sonicsv_unlikely(row_size > max_row_size))
-                return report_error(p, CSV_ERROR_ROW_TOO_LARGE, "Row size exceeds max_row_size");
-            p->stats.total_rows_parsed++;
-            p->stats.total_fields_parsed += p->num_fields;
-            p->sum_field_size += row_size;
-            p->sum_row_size   += row_size;
-            if (p->row_callback) {
-                csv_row_t row = {p->fields, p->num_fields, p->stats.total_rows_parsed, (size_t)(row_start - buf)};
-                p->row_callback(&row, p->row_callback_data);
-            }
-            p->num_fields = 0;
-
+            csv_error_t err = csv_emit_unquoted_row(p, buf, row_start, pos, max_row_size);
+            if (sonicsv_unlikely(err != CSV_OK)) return err;
             pos++;
             if (c == '\r' && pos < end && *pos == '\n') pos++;
             row_start = pos;
