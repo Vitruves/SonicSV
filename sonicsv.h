@@ -2,7 +2,7 @@
  * ============================================================================
  * SonicSV - Ultra-Fast SIMD-Accelerated CSV Parser
  * ============================================================================
- * Version: 3.2.0 | Single-header | C11 | MIT License
+ * Version: 3.2.1 | Single-header | C11 | MIT License
  *
  * A blazing-fast CSV parser that automatically uses SIMD instructions
  * (SSE4.2, AVX2, AVX-512, NEON) for maximum performance. Achieves
@@ -136,7 +136,7 @@
  
  #define SONICSV_VERSION_MAJOR 3
  #define SONICSV_VERSION_MINOR 2
- #define SONICSV_VERSION_PATCH 0
+ #define SONICSV_VERSION_PATCH 1
  
  // Enhanced compiler hints and target attributes for better SIMD compilation
  #if defined(__GNUC__) || defined(__clang__)
@@ -3098,9 +3098,12 @@ csv_error_t csv_parse_file(csv_parser_t *p, const char *filename) {
                          (current_time.tv_nsec - p->start_time.tv_nsec);
    stats.parse_time_ns = elapsed_ns;
    if (elapsed_ns > 0) stats.throughput_mbps = (stats.total_bytes_processed / (1024.0 * 1024.0)) / (elapsed_ns / 1e9);
-   stats.simd_acceleration_used = atomic_load_explicit(&g_simd_features_atomic, memory_order_acquire);
-   stats.peak_memory_kb = (p->fields_capacity * sizeof(csv_field_t) + p->field_buffer_capacity +
-                          p->unparsed_capacity + p->field_data_pool_capacity) / 1024;
+   // Explicit casts to uint32_t: stats fields are uint32_t but the MSVC
+   // stdatomic shim returns `unsigned long long` and the memory arithmetic
+   // is size_t. The values always fit, but /W3 flags the implicit narrowing.
+   stats.simd_acceleration_used = (uint32_t)atomic_load_explicit(&g_simd_features_atomic, memory_order_acquire);
+   stats.peak_memory_kb = (uint32_t)((p->fields_capacity * sizeof(csv_field_t) + p->field_buffer_capacity +
+                          p->unparsed_capacity + p->field_data_pool_capacity) / 1024);
 
    // Derive averages from incremental sums (kept out of the per-field hot path).
    if (stats.total_fields_parsed > 0)
@@ -3140,7 +3143,7 @@ csv_error_t csv_parse_file(csv_parser_t *p, const char *filename) {
  }
  
 uint32_t csv_get_simd_features(void) {
-    uint32_t v = atomic_load_explicit(&g_simd_features_atomic, memory_order_relaxed);
+    uint32_t v = (uint32_t)atomic_load_explicit(&g_simd_features_atomic, memory_order_relaxed);
     if (sonicsv_likely(v != 0))
         return v & ~CSV_SIMD_INITIALIZED_FLAG;
     return csv_simd_init() & ~CSV_SIMD_INITIALIZED_FLAG;
@@ -3156,11 +3159,18 @@ uint32_t csv_get_simd_features(void) {
      return row->num_fields;
  }
  
- // --- String Pool Implementation (unchanged) ---
+ // --- String Pool Implementation ---
+ // Buckets store byte offsets into pool->data (not raw pointers). pool->data
+ // is grown via ensure_capacity, which reallocates and frees the old buffer;
+ // any cached `const char*` would dangle after that. Offsets stay valid
+ // across resize. `used` distinguishes an empty slot from a real entry at
+ // offset 0, since memset-zeroed buckets would otherwise look like valid
+ // entries pointing at the start of pool->data.
  typedef struct {
-   const char* str;
-   uint32_t hash;
+   size_t offset;
    size_t length;
+   uint32_t hash;
+   uint32_t used;
  } csv_pool_entry_t;
  
  struct csv_string_pool {
@@ -3202,9 +3212,9 @@ uint32_t csv_get_simd_features(void) {
    memset(new_buckets, 0, new_num_buckets * sizeof(csv_pool_entry_t));
  
    for (uint32_t i = 0; i < old_num_buckets; i++) {
-     if (old_buckets[i].str) {
+     if (old_buckets[i].used) {
        uint32_t index = old_buckets[i].hash & (new_num_buckets - 1);
-       while (new_buckets[index].str) {
+       while (new_buckets[index].used) {
          index = (index + 1) & (new_num_buckets - 1);
        }
        new_buckets[index] = old_buckets[i];
@@ -3259,26 +3269,27 @@ uint32_t csv_get_simd_features(void) {
  
    uint32_t hash = fnv1a_hash(str, length);
    uint32_t index = hash & (pool->num_buckets - 1);
- 
-   while (pool->buckets[index].str) {
+
+   while (pool->buckets[index].used) {
      if (pool->buckets[index].hash == hash &&
          pool->buckets[index].length == length &&
-         memcmp(pool->buckets[index].str, str, length) == 0) {
-       return pool->buckets[index].str;
+         memcmp(pool->data + pool->buckets[index].offset, str, length) == 0) {
+       return pool->data + pool->buckets[index].offset;
      }
      index = (index + 1) & (pool->num_buckets - 1);
    }
- 
+
    if (ensure_capacity((void**)&pool->data, &pool->data_capacity,
                       pool->data_size + length + 1, 1, NULL) != CSV_OK)
      return NULL;
- 
-   char* new_str = pool->data + pool->data_size;
+
+   size_t new_offset = pool->data_size;
+   char* new_str = pool->data + new_offset;
    memcpy(new_str, str, length);
    new_str[length] = '\0';
    pool->data_size += length + 1;
- 
-   pool->buckets[index] = (csv_pool_entry_t){new_str, hash, length};
+
+   pool->buckets[index] = (csv_pool_entry_t){new_offset, length, hash, 1};
    pool->num_items++;
    return new_str;
  }

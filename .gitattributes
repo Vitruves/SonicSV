@@ -1,0 +1,8 @@
+*.h linguist-language=C
+
+# CSV fixtures encode line endings as part of the test surface (LF / CRLF /
+# CR-only variants are deliberate). The Windows CI runner ships with
+# `core.autocrlf=true` by default, which would otherwise rewrite every
+# checked-out .csv from LF to CRLF and silently break edge_cr.csv. Mark
+# all CSVs binary so the bytes the parser sees on Windows match Linux/macOS.
+*.csv -text
