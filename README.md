@@ -1,60 +1,27 @@
 # SonicSV
 
-<img width="374" height="276" alt="sonicsv5_sized" src="https://github.com/user-attachments/assets/b3b4e68f-480a-4bb5-a930-9bf96bd6a91e" />
+<p align="center">
+  <img src="img/sonicsv.png" alt="SonicSV" width="320">
+</p>
 
-[![Version](https://img.shields.io/badge/version-3.1.1-blue.svg)](https://github.com/vitruves/SonicSV)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/vitruves/SonicSV/blob/main/LICENSE)
-[![C99](https://img.shields.io/badge/standard-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](https://github.com/vitruves/SonicSV)
+<p align="center">
+  <a href="https://github.com/vitruves/SonicSV"><img src="https://img.shields.io/badge/version-3.2.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/vitruves/SonicSV/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+  <a href="https://en.wikipedia.org/wiki/C99"><img src="https://img.shields.io/badge/standard-C99-blue.svg" alt="C99"></a>
+  <a href="https://github.com/vitruves/SonicSV"><img src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg" alt="Platform"></a>
+</p>
 
-A fast, single-header CSV parser for C with automatic SIMD acceleration.
-
----
-
-## Table of Contents
-
-- [Why SonicSV?](#why-sonicsv)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Performance](#performance)
-- [API Reference](#api-reference)
-- [Installation](#installation)
-- [Advanced Usage](#advanced-usage)
-- [Supported Platforms](#supported-platforms)
-- [Thread Safety](#thread-safety)
-- [Contributing](#contributing)
-
----
-
-## Why SonicSV?
-
-SonicSV is a header-only CSV parser with SIMD acceleration for improved performance on modern CPUs. It provides 2-15x speedup on simple CSV data compared to libcsv, with smaller gains on complex quoted fields.
-
-**What it does well:**
-
-- Large files with simple structure (logs, exports, analytics data)
-- Applications where CSV parsing is a measurable bottleneck
-- Projects that want zero build dependencies
-- Streaming large datasets with memory constraints
+A fast, single-header CSV parser for C with automatic SIMD acceleration (SSE4.2, AVX2, AVX-512, NEON, SVE).
 
 ## Features
 
-- **Single header** - Copy `sonicsv.h` into your project, no build dependencies
-- **SIMD acceleration** - Runtime detection and dispatch for SSE4.2, AVX2, AVX-512, NEON, SVE
-- **Streaming parser** - Callback-based API processes files without loading into memory
-- **Memory controls** - Configurable limits on field size, row size, and total memory usage
-- **Thread-safe** - Each parser instance is independent and can be used concurrently
-- **Flexible parsing** - Custom delimiters, quote characters, whitespace trimming
-- **Error handling** - Detailed error codes with row/column tracking, strict and lenient modes
-- **Statistics** - Built-in performance counters and memory usage tracking
-- **RFC 4180 compliant** - Handles quoted fields, escaped quotes, CRLF line endings
-- **Cross-platform** - Works on x86_64, ARM64, and other architectures with optimized fallbacks
+- Single header, zero dependencies — drop `sonicsv.h` into your project
+- Runtime SIMD dispatch with optimized scalar fallback
+- Streaming callback API; parses files larger than RAM
+- RFC 4180 compliant (quoted fields, escaped quotes, CRLF)
+- Configurable limits, custom delimiters, thread-safe parser instances
 
 ## Quick Start
-
-**1. Copy `sonicsv.h` into your project**
-
-**2. Use it:**
 
 ```c
 #define SONICSV_IMPLEMENTATION
@@ -68,310 +35,330 @@ void on_row(const csv_row_t *row, void *ctx) {
     printf("\n");
 }
 
-int main() {
+int main(void) {
     csv_parser_t *p = csv_parser_create(NULL);
     csv_parser_set_row_callback(p, on_row, NULL);
     csv_parse_file(p, "data.csv");
     csv_parser_destroy(p);
-    return 0;
 }
 ```
 
-**3. Compile:**
+Compile:
 
 ```bash
+# GCC / Clang / MinGW
 gcc -O3 -march=native your_program.c -o your_program
+
+# MSVC (native Windows)
+cl /std:c11 /O2 your_program.c
 ```
+
+### Build-time options
+
+Both options are preprocessor defines that must appear **before** `#include "sonicsv.h"`. They behave identically whether set in code or on the command line — the table just lists the conventional way to set each.
+
+**`SONICSV_IMPLEMENTATION`** — required, set in code
+
+In **exactly one** `.c` file, `#define` it before the include to emit the implementation. Other TUs just `#include "sonicsv.h"` normally.
+
+```c
+#define SONICSV_IMPLEMENTATION
+#include "sonicsv.h"
+```
+
+**`SONICSV_HAVE_STDATOMIC`** — optional, MSVC only, set on the command line
+
+By default on MSVC, sonicsv uses a bundled `_Interlocked*`-intrinsics shim, so it builds out of the box on any MSVC version. Define this to use real `<stdatomic.h>` instead — requires MSVC 17.8+ with `/std:c11 /experimental:c11atomics`. GCC, Clang, MinGW, and clang-cl always use `<stdatomic.h>`; this flag is a no-op for them.
+
+```bash
+cl /std:c11 /experimental:c11atomics /DSONICSV_HAVE_STDATOMIC /O2 your_program.c
+```
+
+CPU SIMD is auto-detected at runtime (per-function `__attribute__((target(...)))` on GCC/Clang; scalar fallback on MSVC). `-march=native` is fine for local builds; for portable binaries just use `-O3` — the dispatcher still picks AVX-512 / AVX2 / SSE4.2 / NEON when the host CPU supports them.
+
+### Using from C++
+
+The public API is `extern "C"`, so you can call it directly from C++. Put the implementation in a single `.c` TU and let your `.cpp` files include only the public header:
+
+```c
+// sonicsv_impl.c — compile as C
+#define SONICSV_IMPLEMENTATION
+#include "sonicsv.h"
+```
+
+```cpp
+// app.cpp — compile as C++, link against sonicsv_impl.o
+#include "sonicsv.h"
+// ... call csv_parser_create, csv_parse_file, etc.
+```
+
+Don't put `SONICSV_IMPLEMENTATION` in a `.cpp` file — the impl uses C-isms (`void*` implicit conversions, `<stdatomic.h>`) that don't compile cleanly as C++.
 
 ## Performance
 
-Benchmarks on MacBook Air M3 (ARM64/NEON), parsing ~230 MB of CSV data:
+MacBook Air M3 (NEON), 10 iterations vs libcsv. Selected results from `./build/benchmark_suite`:
 
-| Test Case              | SonicSV  | libcsv   | Speedup        |
-| ---------------------- | -------- | -------- | -------------- |
-| Simple CSV (no quotes) | 1.9 GB/s | 320 MB/s | **6x**   |
-| Long fields            | 3.7 GB/s | 355 MB/s | **10x**  |
-| Very long fields       | 5.5 GB/s | 364 MB/s | **15x**  |
-| Quoted with commas     | 494 MB/s | 331 MB/s | **1.5x** |
-| Quoted with newlines   | 980 MB/s | 360 MB/s | **2.7x** |
+| Test Case          |   Size | SonicSV    | libcsv    | Speedup |
+| ------------------ | -----: | ---------- | --------- | ------: |
+| small_simple       |  0.5MB | 1836 MB/s  | 222 MB/s  |   8.3x  |
+| medium_simple      |  5.5MB | 2808 MB/s  | 324 MB/s  |   8.7x  |
+| wide_25cols        | 27.4MB | 2777 MB/s  | 316 MB/s  |   8.8x  |
+| long_fields        | 24.6MB | 4807 MB/s  | 343 MB/s  |  14.0x  |
+| very_long          | 47.9MB | 6687 MB/s  | 350 MB/s  |  19.1x  |
+| quoted_commas      | 10.4MB | 1932 MB/s  | 320 MB/s  |   6.1x  |
+| quoted_mixed       |  7.9MB | 2874 MB/s  | 339 MB/s  |   8.5x  |
+| huge_simple        |  110MB | 2620 MB/s  | 292 MB/s  |   9.0x  |
+| huge_long          |  240MB | 6294 MB/s  | 337 MB/s  |  18.7x  |
+| huge_quoted_mix    |   79MB | 2807 MB/s  | 332 MB/s  |   8.5x  |
 
-**Aggregate: 5.6x faster** (230 MB in 0.12s vs 0.69s)
-
-The speedup is highest for simple, unquoted CSV data. Complex quoted fields with embedded delimiters see smaller gains.
-
-### Comparison with libcsv
-
-| Aspect                           | SonicSV                  | libcsv             |
-| -------------------------------- | ------------------------ | ------------------ |
-| **Simple CSV performance** | 1.9-5.5 GB/s             | 320-364 MB/s       |
-| **Quoted CSV performance** | 494-980 MB/s             | 331-360 MB/s       |
-| **Integration**            | Single header file       | Library dependency |
-| **Memory usage**           | Configurable limits      | Fixed per design   |
-| **API style**              | Callback-based streaming | Callback-based     |
-| **SIMD support**           | Runtime detection        | No                 |
-| **Strict RFC 4180**        | Optional                 | Yes                |
-| **Code size**              | ~1850 lines              | ~1000 lines        |
-
-## API Reference
-
-### Parser Lifecycle
-
-```c
-// Create parser with default or custom options
-csv_parser_t *csv_parser_create(const csv_parse_options_t *options);
-
-// Reset parser state for reuse (avoids reallocation)
-csv_error_t csv_parser_reset(csv_parser_t *parser);
-
-// Free all resources
-void csv_parser_destroy(csv_parser_t *parser);
-```
-
-### Parsing Functions
-
-```c
-// Parse entire file (uses mmap for zero-copy when available)
-csv_error_t csv_parse_file(csv_parser_t *parser, const char *filename);
-
-// Parse from FILE* stream
-csv_error_t csv_parse_stream(csv_parser_t *parser, FILE *stream);
-
-// Parse null-terminated string
-csv_error_t csv_parse_string(csv_parser_t *parser, const char *csv_string);
-
-// Parse raw buffer (set is_final=true for last chunk)
-csv_error_t csv_parse_buffer(csv_parser_t *parser, const char *buffer,
-                               size_t size, bool is_final);
-```
-
-### Callbacks
-
-```c
-// Row callback - invoked for each parsed row
-typedef void (*csv_row_callback_t)(const csv_row_t *row, void *user_data);
-void csv_parser_set_row_callback(csv_parser_t *parser,
-                                   csv_row_callback_t callback,
-                                   void *user_data);
-
-// Error callback - invoked on parse errors
-typedef void (*csv_error_callback_t)(csv_error_t error, const char *message,
-                                      uint64_t row_number, void *user_data);
-void csv_parser_set_error_callback(csv_parser_t *parser,
-                                     csv_error_callback_t callback,
-                                     void *user_data);
-```
-
-### Row and Field Access
-
-```c
-// Get field at index from row (returns NULL if out of bounds)
-const csv_field_t *csv_get_field(const csv_row_t *row, size_t index);
-
-// Get number of fields in row
-size_t csv_get_num_fields(const csv_row_t *row);
-
-// Field structure
-typedef struct {
-    const char *data;  // Pointer to field content (NOT null-terminated for unquoted!)
-    size_t size;       // Length in bytes
-    bool quoted;       // true if field was quoted in source
-} csv_field_t;
-
-// Row structure
-typedef struct {
-    csv_field_t *fields;   // Array of fields
-    size_t num_fields;     // Number of fields
-    uint64_t row_number;   // 1-based row number
-    size_t byte_offset;    // Byte offset in input
-} csv_row_t;
-```
-
-### Configuration Options
-
-```c
-csv_parse_options_t csv_default_options(void);
-
-typedef struct {
-    char delimiter;          // Field separator (default: ',')
-    char quote_char;         // Quote character (default: '"')
-    bool double_quote;       // Treat "" as escaped quote (default: true)
-    bool trim_whitespace;    // Strip spaces from fields (default: false)
-    bool ignore_empty_lines; // Skip blank lines (default: true)
-    bool strict_mode;        // Error on malformed CSV (default: false)
-
-    size_t max_field_size;   // Max bytes per field (default: 10MB)
-    size_t max_row_size;     // Max bytes per row (default: 100MB)
-    size_t buffer_size;      // I/O buffer size (default: 64KB)
-    size_t max_memory_kb;    // Memory limit in KB, 0=unlimited (default: 0)
-
-    bool disable_mmap;       // Force stream I/O instead of mmap (default: false)
-    bool enable_prefetch;    // Use CPU prefetch hints (default: true)
-} csv_parse_options_t;
-```
-
-### Error Handling
-
-```c
-typedef enum {
-    CSV_OK = 0,
-    CSV_ERROR_INVALID_ARGS = -1,
-    CSV_ERROR_OUT_OF_MEMORY = -2,
-    CSV_ERROR_PARSE_ERROR = -6,
-    CSV_ERROR_FIELD_TOO_LARGE = -7,
-    CSV_ERROR_ROW_TOO_LARGE = -8,
-    CSV_ERROR_IO_ERROR = -9
-} csv_error_t;
-
-// Convert error code to human-readable string
-const char *csv_error_string(csv_error_t error);
-```
-
-### Statistics and Diagnostics
-
-```c
-// Get performance statistics
-csv_stats_t csv_parser_get_stats(const csv_parser_t *parser);
-
-// Print formatted statistics to stdout
-void csv_print_stats(const csv_parser_t *parser);
-
-// Get detected SIMD features (bitmask of CSV_SIMD_* flags)
-uint32_t csv_get_simd_features(void);
-```
+Typical speedup **8–9x** on simple/quoted CSV, up to **19x** on long fields.
 
 ## Installation
-
-### Header-Only
-
-Copy `sonicsv.h` to your project:
 
 ```bash
 curl -O https://raw.githubusercontent.com/vitruves/SonicSV/main/sonicsv.h
 ```
 
-Or install system-wide:
+Or system-wide:
 
 ```bash
-git clone https://github.com/vitruves/SonicSV.git
-cd SonicSV
-make install          # installs to /usr/local/include
-# or
-make install PREFIX=/custom/path
+git clone https://github.com/vitruves/SonicSV.git && cd SonicSV
+make install              # /usr/local/include
+make install PREFIX=...   # custom prefix
 ```
 
-### Building Examples and Tests
+Build targets: `make test`, `make example`, `make benchmark`, `make clean`.
 
-```bash
-make test       # Build and run test suite
-make example    # Build example program
-make benchmark  # Compare against libcsv (requires libcsv)
-make clean      # Remove build artifacts
+## API
+
+```c
+// Lifecycle
+csv_parser_t *csv_parser_create(const csv_parse_options_t *options);
+csv_error_t   csv_parser_reset(csv_parser_t *parser);
+void          csv_parser_destroy(csv_parser_t *parser);
+
+// Parse
+csv_error_t csv_parse_file  (csv_parser_t *p, const char *filename);
+csv_error_t csv_parse_stream(csv_parser_t *p, FILE *stream);
+csv_error_t csv_parse_string(csv_parser_t *p, const char *s);
+csv_error_t csv_parse_buffer(csv_parser_t *p, const char *buf, size_t n, bool is_final);
+
+// Callbacks
+void csv_parser_set_row_callback  (csv_parser_t *p, csv_row_callback_t cb,   void *user_data);
+void csv_parser_set_error_callback(csv_parser_t *p, csv_error_callback_t cb, void *user_data);
+
+// Access
+const csv_field_t *csv_get_field(const csv_row_t *row, size_t index);
+size_t             csv_get_num_fields(const csv_row_t *row);
+
+// Diagnostics
+csv_stats_t csv_parser_get_stats(const csv_parser_t *parser);
+void        csv_print_stats(const csv_parser_t *parser);
+uint32_t    csv_get_simd_features(void);
+const char *csv_error_string(csv_error_t error);
 ```
 
-## Advanced Usage
-
-### Custom Options
+### Options
 
 ```c
 csv_parse_options_t opts = csv_default_options();
-opts.delimiter = '\t';              // Tab-separated values
-opts.trim_whitespace = true;        // Strip leading/trailing spaces
-opts.strict_mode = true;            // Error on malformed CSV
-opts.max_field_size = 1024 * 1024;  // 1MB field limit
-opts.max_row_size = 10 * 1024 * 1024; // 10MB row limit
-opts.buffer_size = 128 * 1024;      // 128KB I/O buffer
-
-csv_parser_t *p = csv_parser_create(&opts);
+opts.delimiter        = '\t';
+opts.quote_char       = '"';
+opts.trim_whitespace  = true;
+opts.strict_mode      = true;
+opts.max_field_size   = 1 * 1024 * 1024;   // 1 MB
+opts.max_row_size     = 10 * 1024 * 1024;  // 10 MB
+opts.buffer_size      = 128 * 1024;        // 128 KB
+opts.max_memory_kb    = 0;                 // 0 = unlimited
 ```
 
-### Streaming Large Files
+### Field & Row
+
+```c
+typedef struct { const char *data; size_t size; bool quoted; } csv_field_t;
+typedef struct { csv_field_t *fields; size_t num_fields;
+                 uint64_t row_number; size_t byte_offset; } csv_row_t;
+```
+
+Field `data` is **not** null-terminated; always use `size`.
+
+## Advanced Usage
+
+The collapsible sections below cover edge features that most users won't need, but which are useful for streaming pipelines, long-running processes, memory-bounded environments, and diagnostics.
+
+<details>
+<summary><b>Streaming and chunked input (<code>csv_parse_buffer</code>)</b></summary>
+
+Use `csv_parse_buffer` when data arrives in chunks (sockets, pipes, decompression, custom I/O). The parser holds incomplete rows across calls; pass `is_final = true` on the last chunk so any trailing row without a newline is flushed.
 
 ```c
 csv_parser_t *p = csv_parser_create(NULL);
-csv_parser_set_row_callback(p, on_row, user_data);
+csv_parser_set_row_callback(p, on_row, NULL);
 
-FILE *fp = fopen("large_file.csv", "rb");
-csv_parse_stream(p, fp);  // Processes file in chunks
-fclose(fp);
-
+char buf[64 * 1024];
+size_t n;
+while ((n = read_chunk(buf, sizeof buf)) > 0) {
+    if (csv_parse_buffer(p, buf, n, false) != CSV_OK) break;
+}
+csv_parse_buffer(p, NULL, 0, true);  // flush final partial row
 csv_parser_destroy(p);
 ```
 
-### Error Handling
+`csv_parse_string` is a convenience wrapper around this for null-terminated input. `csv_parse_stream` wraps a `FILE*` and `csv_parse_file` mmaps the file when possible (fall back to stream I/O via `opts.disable_mmap = true`).
+
+</details>
+
+<details>
+<summary><b>Reusing a parser across files (<code>csv_parser_reset</code>)</b></summary>
+
+`csv_parser_reset` clears parser state (row counter, statistics, internal buffers) without freeing pool allocations, so the next parse avoids reallocation. Useful in batch jobs and long-running services.
+
+```c
+csv_parser_t *p = csv_parser_create(NULL);
+csv_parser_set_row_callback(p, on_row, NULL);
+
+for (int i = 0; i < num_files; i++) {
+    csv_parser_reset(p);
+    csv_parse_file(p, files[i]);
+}
+csv_parser_destroy(p);
+```
+
+Callbacks survive a reset; options do not need to be reapplied.
+
+</details>
+
+<details>
+<summary><b>Error callback and strict mode</b></summary>
+
+By default the parser is lenient (RFC 4180 deviations are tolerated). Set `strict_mode = true` to surface malformed input as `CSV_ERROR_PARSE_ERROR`. Wire an error callback for per-row diagnostics — it receives the row number where the error occurred.
 
 ```c
 void on_error(csv_error_t err, const char *msg, uint64_t row, void *ctx) {
-    fprintf(stderr, "Row %llu: %s (%s)\n", row, msg, csv_error_string(err));
+    fprintf(stderr, "row %llu: %s (%s)\n",
+            (unsigned long long)row, msg, csv_error_string(err));
 }
 
+csv_parse_options_t opts = csv_default_options();
+opts.strict_mode = true;
+
+csv_parser_t *p = csv_parser_create(&opts);
 csv_parser_set_error_callback(p, on_error, NULL);
 ```
 
-### Performance Statistics
+Parse functions also return a `csv_error_t`; the callback is for granular reporting, the return value is for control flow.
 
-```c
-csv_parse_file(p, "data.csv");
+</details>
 
-csv_stats_t stats = csv_parser_get_stats(p);
-printf("Parsed %llu rows in %.3f ms\n",
-       stats.total_rows_parsed,
-       stats.parse_time_ns / 1e6);
-printf("Throughput: %.2f MB/s\n", stats.throughput_mbps);
+<details>
+<summary><b>String pool (deduplicating repeated values)</b></summary>
 
-// Or use built-in formatting:
-csv_print_stats(p);
-```
-
-### String Deduplication
-
-For CSVs with repeated field values:
+When a column has low cardinality (categorical data, enum-like strings, repeated identifiers), interning saves memory and enables pointer-equality comparisons. The pool is independent of the parser; copy field bytes into it as you process rows.
 
 ```c
 csv_string_pool_t *pool = csv_string_pool_create(1024);
 
 void on_row(const csv_row_t *row, void *ctx) {
-    csv_string_pool_t *pool = (csv_string_pool_t *)ctx;
-
-    for (size_t i = 0; i < row->num_fields; i++) {
-        const csv_field_t *f = csv_get_field(row, i);
-        const char *interned = csv_string_pool_intern(pool, f->data, f->size);
-        // interned points to deduplicated string
-    }
+    csv_string_pool_t *p = ctx;
+    const csv_field_t *f = csv_get_field(row, 0);
+    const char *interned = csv_string_pool_intern(p, f->data, f->size);
+    // 'interned' is null-terminated and stable for the pool's lifetime
 }
 
-csv_parser_set_row_callback(p, on_row, pool);
-// ...
+csv_parser_set_row_callback(parser, on_row, pool);
+// ... parse ...
+csv_string_pool_clear(pool);    // reuse without realloc
 csv_string_pool_destroy(pool);
 ```
 
-## Supported Platforms
+Field `data` pointers from the row callback are **not** stable past the callback's return — always copy or intern values you need to keep.
 
-- **ARM64**: NEON (Apple Silicon, Raspberry Pi 4+, AWS Graviton)
-- **x86_64**: SSE4.2, AVX2, AVX-512 (auto-detected at runtime)
-- **Other architectures**: Optimized SWAR scalar implementation
+</details>
 
-Tested on Linux, macOS, and Windows (MSVC, MinGW).
+<details>
+<summary><b>Memory limits and large-field protection</b></summary>
+
+For untrusted input, cap memory and field/row sizes to prevent a malformed file (e.g. a single unterminated quote) from exhausting RAM. Hitting a limit returns `CSV_ERROR_FIELD_TOO_LARGE`, `CSV_ERROR_ROW_TOO_LARGE`, or `CSV_ERROR_OUT_OF_MEMORY`.
+
+```c
+csv_parse_options_t opts = csv_default_options();
+opts.max_field_size = 64 * 1024;        // 64 KB per field
+opts.max_row_size   = 1 * 1024 * 1024;  // 1 MB per row
+opts.max_memory_kb  = 256 * 1024;       // 256 MB total
+```
+
+`max_memory_kb = 0` (the default) means unlimited. Defaults for field/row sizes are 10 MB / 100 MB respectively — generous, but a determined attacker can still allocate a lot before hitting them.
+
+</details>
+
+<details>
+<summary><b>Runtime SIMD detection</b></summary>
+
+The parser auto-dispatches; you don't need to query SIMD features for correctness. `csv_get_simd_features` is a diagnostic — useful for logging which path a deployed binary actually took.
+
+```c
+uint32_t f = csv_get_simd_features();
+printf("SIMD:%s%s%s%s%s\n",
+    f & CSV_SIMD_AVX512 ? " AVX-512" : "",
+    f & CSV_SIMD_AVX2   ? " AVX2"    : "",
+    f & CSV_SIMD_SSE4_2 ? " SSE4.2"  : "",
+    f & CSV_SIMD_NEON   ? " NEON"    : "",
+    f & CSV_SIMD_SVE    ? " SVE"     : "");
+```
+
+Flags: `CSV_SIMD_NONE`, `CSV_SIMD_SSE4_2`, `CSV_SIMD_AVX2`, `CSV_SIMD_AVX512`, `CSV_SIMD_NEON`, `CSV_SIMD_SVE`. The result is a bitmask — multiple flags can be set on the same CPU.
+
+</details>
+
+<details>
+<summary><b>Statistics and throughput measurement</b></summary>
+
+`csv_parser_get_stats` returns a struct with totals, throughput (MB/s), peak memory, SIMD-vs-scalar op counts, and average field/row sizes. `csv_print_stats` dumps the same to stdout — handy for benchmarking and regression checks.
+
+```c
+csv_parse_file(p, "data.csv");
+
+csv_stats_t s = csv_parser_get_stats(p);
+printf("%llu rows, %.1f MB/s, peak %u KB, %llu SIMD / %llu scalar\n",
+       (unsigned long long)s.total_rows_parsed,
+       s.throughput_mbps,
+       s.peak_memory_kb,
+       (unsigned long long)s.perf.simd_ops,
+       (unsigned long long)s.perf.scalar_fallbacks);
+```
+
+Stats accumulate across `csv_parse_*` calls on the same parser; `csv_parser_reset` zeroes them.
+
+</details>
+
+<details>
+<summary><b>Tuning options for unusual workloads</b></summary>
+
+`csv_default_options()` is tuned for general-purpose workloads. Adjust when you have a specific shape:
+
+| Option | When to change |
+| --- | --- |
+| `delimiter`, `quote_char` | TSV (`'\t'`), pipe-delimited, alternative quoting |
+| `double_quote = false` | Backslash-escape dialects (non-RFC) |
+| `trim_whitespace = true` | Tolerate sloppy producers; costs a small per-field pass |
+| `ignore_empty_lines = false` | Preserve blank rows (e.g. fixed schemas with optional sections) |
+| `buffer_size` | Raise (1–4 MB) for huge files; lower for low-latency streaming |
+| `disable_mmap = true` | Special filesystems, FUSE, or when you need stream semantics |
+| `enable_prefetch = false` | Tiny files where prefetch overhead exceeds benefit |
+| `force_alignment = false` | Embedded targets where aligned alloc is expensive |
+
+`num_threads` and `enable_parallel` are reserved for future parallel parsing — currently no-ops.
+
+</details>
 
 ## Thread Safety
 
-Each `csv_parser_t` instance is completely isolated and thread-safe. You can:
+Each `csv_parser_t` is independent and safe to use concurrently across threads. Do not share a single instance without external synchronization.
 
-- Use multiple parsers concurrently from different threads
-- Parse different files in parallel
-- Share read-only configuration structures
+## Platforms
 
-Do not share a single parser instance across threads without external synchronization.
-
-## Contributing
-
-Contributions are welcome. Please:
-
-- Maintain C99 compatibility
-- Add tests for new features
-- Ensure `make test` passes
-- Follow existing code style
+ARM64 (NEON), x86_64 (SSE4.2/AVX2/AVX-512, runtime-detected), portable scalar fallback elsewhere. Tested on Linux, macOS, Windows (MSVC, MinGW).
 
 ## License
 
-MIT License - see `sonicsv.h` for details.
-
+MIT — see `sonicsv.h`.

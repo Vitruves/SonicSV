@@ -76,6 +76,12 @@ static const test_config_t test_configs[] = {
     {"quoted_commas",  100000,     5,   20, true,  false, true },
     {"quoted_newlines", 50000,     5,   30, true,  true,  false},
     {"quoted_mixed",    50000,     5,   30, true,  true,  true },
+
+    /* Larger workloads - reduce fixed overhead and timer noise */
+    {"huge_simple",   2000000,     5,   10, false, false, false},
+    {"huge_wide_25",   500000,    25,   10, false, false, false},
+    {"huge_long",      250000,     5,  200, false, false, false},
+    {"huge_quoted_mix",500000,     5,   30, true,  true,  true },
 };
 
 #define NUM_TESTS (sizeof(test_configs) / sizeof(test_configs[0]))
@@ -512,14 +518,12 @@ static int run_benchmark_suite(int iterations, int warmup, FILE *report_out) {
     /* Create temp directory */
     mkdir(TEMP_DIR, 0755);
 
-    fprintf(stderr, "\nSonicSV Benchmark Suite\n");
-    fprintf(stderr, "=======================\n\n");
-    fprintf(stderr, "Configuration: %zu tests, %d iterations, %d warmup\n\n",
+    fprintf(report_out, "Configuration: %zu tests, %d iterations, %d warmup\n\n",
             NUM_TESTS, iterations, warmup);
 
-    fprintf(stderr, "%-4s %-18s %8s %10s %10s %8s\n",
+    fprintf(report_out, "%-4s %-18s %8s %10s %10s %8s\n",
             "#", "Test", "Size", "SonicSV", "libcsv", "Speedup");
-    fprintf(stderr, "---- ------------------ -------- ---------- ---------- --------\n");
+    fprintf(report_out, "---- ------------------ -------- ---------- ---------- --------\n");
 
     for (size_t t = 0; t < NUM_TESTS; t++) {
         const test_config_t *config = &test_configs[t];
@@ -583,7 +587,7 @@ static int run_benchmark_suite(int iterations, int warmup, FILE *report_out) {
         result->libcsv_throughput = (file_size / (1024.0 * 1024.0)) / libcsv_mean;
         result->speedup = result->sonicsv_throughput / result->libcsv_throughput;
 
-        fprintf(stderr, "[%2zu] %-18s %6.1fMB %8.1fMB/s %8.1fMB/s %6.2fx\n",
+        fprintf(report_out, "[%2zu] %-18s %6.1fMB %8.1fMB/s %8.1fMB/s %6.2fx\n",
                 t + 1, config->name,
                 file_size / (1024.0 * 1024.0),
                 result->sonicsv_throughput,
@@ -594,14 +598,10 @@ static int run_benchmark_suite(int iterations, int warmup, FILE *report_out) {
         unlink(filepath);
     }
 
-    fprintf(stderr, "\nGenerating report...\n");
-
-    /* Generate report */
-    print_report(report_out, results, NUM_TESTS, iterations, warmup);
-
     /* Cleanup */
     rmdir(TEMP_DIR);
 
+    (void)print_report; /* suppressed; --output now receives the same compact table */
     return 0;
 }
 
