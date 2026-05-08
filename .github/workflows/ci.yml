@@ -38,16 +38,27 @@ jobs:
       UBSAN_OPTIONS: print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
+      # The Makefile builds a C++ smoke binary that links against the
+      # sanitizer-instrumented C objects, so the C++ side must use the same
+      # toolchain (clang++) and the same -fsanitize flags — otherwise the
+      # link fails with `undefined reference to __asan_*` / `__ubsan_*`
+      # because g++ doesn't pull in clang's sanitizer runtime.
       - name: Build & test with ASan/UBSan
-        run: make test CC=clang CFLAGS="-std=c11 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer"
+        run: |
+          make test \
+            CC=clang \
+            CXX=clang++ \
+            CFLAGS="-std=c11 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer" \
+            CXXFLAGS="-std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer"
 
   rocky:
     name: Rocky Linux 9 (gcc)
     runs-on: ubuntu-latest
     container: rockylinux:9
     steps:
+      # gcc-c++ is needed for the C++ smoke binary the Makefile builds.
       - name: Install toolchain
-        run: dnf install -y --allowerasing gcc make git tar gzip findutils coreutils which
+        run: dnf install -y --allowerasing gcc gcc-c++ make git tar gzip findutils coreutils which
       - uses: actions/checkout@v4
       - name: Build & test
         run: make test CFLAGS="-std=c11 $BASE_CFLAGS"
