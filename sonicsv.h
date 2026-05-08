@@ -636,18 +636,20 @@ static sonicsv_always_inline void csv_clock_now(struct timespec *ts) {
 #endif
 }
 
-/* Low-level platform aligned allocator. Pair csv_sys_aligned_alloc with csv_sys_aligned_free. */
+/* Low-level platform aligned allocator. Pair csv_sys_aligned_alloc with csv_sys_aligned_free.
+ * We use posix_memalign on every POSIX target rather than C11 aligned_alloc:
+ * the latter is only declared by glibc when __STDC_VERSION__ >= 201112L (or
+ * _ISOC11_SOURCE is set), so a -std=c99 build trips an implicit-declaration
+ * error. posix_memalign is available since POSIX 2001 and we already require
+ * _POSIX_C_SOURCE >= 200809L, so it's universally visible here. */
 static sonicsv_always_inline void *csv_sys_aligned_alloc(size_t bytes, size_t alignment) {
 #if defined(_WIN32)
     return _aligned_malloc(bytes, alignment);
-#elif defined(__APPLE__)
-    void *p = NULL;
-    if (posix_memalign(&p, alignment >= sizeof(void*) ? alignment : sizeof(void*), bytes) != 0) return NULL;
-    return p;
 #else
-    /* C11 aligned_alloc requires size to be a multiple of alignment. */
-    size_t aligned_bytes = (bytes + alignment - 1) & ~(alignment - 1);
-    return aligned_alloc(alignment >= sizeof(void*) ? alignment : sizeof(void*), aligned_bytes);
+    void *p = NULL;
+    size_t a = alignment >= sizeof(void*) ? alignment : sizeof(void*);
+    if (posix_memalign(&p, a, bytes) != 0) return NULL;
+    return p;
 #endif
 }
 
@@ -837,7 +839,11 @@ static atomic_uint g_simd_features_atomic = 0;
 
  static SONICSV_THREAD_LOCAL csv_thread_stats_t g_thread_stats = {0, 0};
 
- // Internal parser structure - isolated and thread-safe
+ // Internal parser structure - isolated and thread-safe.
+ // NOTE: alignment of the *pointed-to* SIMD buffers is handled at allocation
+ // time by csv_aligned_alloc. The pointer slots themselves don't need any
+ // alignment attribute, and a postfix __declspec(align(...)) is rejected by
+ // MSVC anyway (it must be prefix). Keep these as plain pointer fields.
  struct csv_parser {
    csv_parse_options_t options;
    csv_row_callback_t row_callback;
@@ -845,17 +851,17 @@ static atomic_uint g_simd_features_atomic = 0;
    csv_error_callback_t error_callback;
    void *error_callback_data;
    csv_parse_state_t state;
-   char* unparsed_buffer sonicsv_aligned(SONICSV_SIMD_ALIGN);
+   char* unparsed_buffer;
    size_t unparsed_size;
    size_t unparsed_capacity;
-   csv_field_t *fields sonicsv_aligned(SONICSV_SIMD_ALIGN);
+   csv_field_t *fields;
    size_t fields_capacity;
    size_t num_fields;
-   char *field_buffer sonicsv_aligned(SONICSV_SIMD_ALIGN);
+   char *field_buffer;
    size_t field_buffer_capacity;
    size_t field_buffer_pos;
    // Optimized field data storage with better memory layout
-   char *field_data_pool sonicsv_aligned(SONICSV_SIMD_ALIGN);
+   char *field_data_pool;
    size_t field_data_pool_size;
    size_t field_data_pool_capacity;
    csv_stats_t stats;

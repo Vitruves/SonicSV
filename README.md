@@ -13,6 +13,9 @@
 
 A fast, single-header CSV parser for C with automatic SIMD acceleration (SSE4.2, AVX2, AVX-512, NEON, SVE).
 
+
+<br>
+
 ## Features
 
 - Single header, zero dependencies — drop `sonicsv.h` into your project
@@ -20,6 +23,28 @@ A fast, single-header CSV parser for C with automatic SIMD acceleration (SSE4.2,
 - Streaming callback API; parses files larger than RAM
 - RFC 4180 compliant (quoted fields, escaped quotes, CRLF)
 - Configurable limits, custom delimiters, thread-safe parser instances
+
+
+<br>
+
+## Installation
+
+```bash
+curl -O https://raw.githubusercontent.com/vitruves/SonicSV/main/sonicsv.h
+```
+
+Or system-wide:
+
+```bash
+git clone https://github.com/vitruves/SonicSV.git && cd SonicSV
+make install              # /usr/local/include
+make install PREFIX=...   # custom prefix
+```
+
+Build targets: `make test`, `make example`, `make benchmark`, `make clean`.
+
+
+<br>
 
 ## Quick Start
 
@@ -53,30 +78,32 @@ gcc -O3 -march=native your_program.c -o your_program
 cl /std:c11 /O2 your_program.c
 ```
 
-### Build-time options
+### Preprocessor defines
 
-Both options are preprocessor defines that must appear **before** `#include "sonicsv.h"`. They behave identically whether set in code or on the command line — the table just lists the conventional way to set each.
+**`SONICSV_IMPLEMENTATION`** — required, set in code.
 
-**`SONICSV_IMPLEMENTATION`** — required, set in code
-
-In **exactly one** `.c` file, `#define` it before the include to emit the implementation. Other TUs just `#include "sonicsv.h"` normally.
+In **exactly one** `.c` file, `#define` it before the include to emit the implementation. Other TUs just `#include "sonicsv.h"` normally. Defining it in more than one TU produces linker errors (`multiple definition of csv_parser_create`, …).
 
 ```c
 #define SONICSV_IMPLEMENTATION
 #include "sonicsv.h"
 ```
 
-**`SONICSV_HAVE_STDATOMIC`** — optional, MSVC only, set on the command line
+CPU SIMD is auto-detected at runtime (per-function `__attribute__((target(...)))` on GCC/Clang; scalar fallback on MSVC). `-march=native` is fine for local builds; for portable binaries just use `-O3` — the dispatcher still picks AVX-512 / AVX2 / SSE4.2 / NEON when the host CPU supports them.
 
-By default on MSVC, sonicsv uses a bundled `_Interlocked*`-intrinsics shim, so it builds out of the box on any MSVC version. Define this to use real `<stdatomic.h>` instead — requires MSVC 17.8+ with `/std:c11 /experimental:c11atomics`. GCC, Clang, MinGW, and clang-cl always use `<stdatomic.h>`; this flag is a no-op for them.
+<details>
+<summary><b><code>SONICSV_HAVE_STDATOMIC</code> — optional, MSVC only</b></summary>
+
+By default on MSVC, sonicsv uses a bundled `_Interlocked*`-intrinsics shim, so it builds out of the box on any MSVC version. Define this on the command line to use real `<stdatomic.h>` instead — requires MSVC 17.8+ with `/std:c11 /experimental:c11atomics`. GCC, Clang, MinGW, and clang-cl always use `<stdatomic.h>`; this flag is a no-op for them.
 
 ```bash
 cl /std:c11 /experimental:c11atomics /DSONICSV_HAVE_STDATOMIC /O2 your_program.c
 ```
 
-CPU SIMD is auto-detected at runtime (per-function `__attribute__((target(...)))` on GCC/Clang; scalar fallback on MSVC). `-march=native` is fine for local builds; for portable binaries just use `-O3` — the dispatcher still picks AVX-512 / AVX2 / SSE4.2 / NEON when the host CPU supports them.
+</details>
 
-### Using from C++
+<details>
+<summary><b>Using from C++</b></summary>
 
 The public API is `extern "C"`, so you can call it directly from C++. Put the implementation in a single `.c` TU and let your `.cpp` files include only the public header:
 
@@ -93,6 +120,11 @@ The public API is `extern "C"`, so you can call it directly from C++. Put the im
 ```
 
 Don't put `SONICSV_IMPLEMENTATION` in a `.cpp` file — the impl uses C-isms (`void*` implicit conversions, `<stdatomic.h>`) that don't compile cleanly as C++.
+
+</details>
+
+
+<br>
 
 ## Performance
 
@@ -113,21 +145,8 @@ MacBook Air M3 (NEON), 10 iterations vs libcsv. Selected results from `./build/b
 
 Typical speedup **8–9x** on simple/quoted CSV, up to **19x** on long fields.
 
-## Installation
 
-```bash
-curl -O https://raw.githubusercontent.com/vitruves/SonicSV/main/sonicsv.h
-```
-
-Or system-wide:
-
-```bash
-git clone https://github.com/vitruves/SonicSV.git && cd SonicSV
-make install              # /usr/local/include
-make install PREFIX=...   # custom prefix
-```
-
-Build targets: `make test`, `make example`, `make benchmark`, `make clean`.
+<br>
 
 ## API
 
@@ -181,6 +200,9 @@ typedef struct { csv_field_t *fields; size_t num_fields;
 ```
 
 Field `data` is **not** null-terminated; always use `size`.
+
+
+<br>
 
 ## Advanced Usage
 
@@ -351,13 +373,22 @@ Stats accumulate across `csv_parse_*` calls on the same parser; `csv_parser_rese
 
 </details>
 
+
+<br>
+
 ## Thread Safety
 
 Each `csv_parser_t` is independent and safe to use concurrently across threads. Do not share a single instance without external synchronization.
 
+
+<br>
+
 ## Platforms
 
 ARM64 (NEON), x86_64 (SSE4.2/AVX2/AVX-512, runtime-detected), portable scalar fallback elsewhere. Tested on Linux, macOS, Windows (MSVC, MinGW).
+
+
+<br>
 
 ## License
 

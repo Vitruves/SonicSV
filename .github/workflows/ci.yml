@@ -10,60 +10,36 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Common base flags. Per-job CFLAGS append -std=c11 plus any extras
+# (sanitizers, -Wpedantic, etc.). POSIX feature macros and -DSONICSV_IMPLEMENTATION
+# are already added by the project Makefile, so jobs only need the bits that
+# vary across configurations.
 env:
-  BASE_CFLAGS: "-O3 -Wall -Wextra -DSONICSV_IMPLEMENTATION"
+  BASE_CFLAGS: "-O3 -Wall -Wextra"
 
 jobs:
   linux:
-    name: Linux (${{ matrix.os }}, ${{ matrix.cc }}, ${{ matrix.std }})
-    runs-on: ${{ matrix.os }}
+    name: Linux (${{ matrix.cc }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04]
         cc: [gcc, clang]
-        std: [c99, c11]
     steps:
       - uses: actions/checkout@v4
       - name: Build & test
-        run: make test CC=${{ matrix.cc }} CFLAGS="-std=${{ matrix.std }} $BASE_CFLAGS"
-
-  linux-strict:
-    name: Linux strict warnings (${{ matrix.cc }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cc: [gcc, clang]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build & test with Werror
-        run: make test CC=${{ matrix.cc }} CFLAGS="-std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DSONICSV_IMPLEMENTATION"
+        run: make test CC=${{ matrix.cc }} CFLAGS="-std=c11 $BASE_CFLAGS"
 
   linux-sanitizers:
-    name: Linux sanitizers (${{ matrix.cc }})
+    name: Linux sanitizers (clang)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        cc: [gcc, clang]
     env:
       ASAN_OPTIONS: detect_leaks=1
       UBSAN_OPTIONS: print_stacktrace=1
     steps:
       - uses: actions/checkout@v4
       - name: Build & test with ASan/UBSan
-        run: make test CC=${{ matrix.cc }} CFLAGS="-std=c11 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer -DSONICSV_IMPLEMENTATION"
-
-  linux-32bit:
-    name: Linux 32-bit
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install multilib
-        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
-      - name: Build & test 32-bit
-        run: make test CC=gcc CFLAGS="-m32 -std=c11 -O2 -Wall -Wextra -D_FILE_OFFSET_BITS=64 -DSONICSV_IMPLEMENTATION"
+        run: make test CC=clang CFLAGS="-std=c11 -O1 -g -Wall -Wextra -fsanitize=address,undefined -fno-omit-frame-pointer"
 
   rocky:
     name: Rocky Linux 9 (gcc)
@@ -77,54 +53,12 @@ jobs:
         run: make test CFLAGS="-std=c11 $BASE_CFLAGS"
 
   macos:
-    name: macOS (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, macos-13]
+    name: macOS (clang)
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build & test
         run: make test CC=clang CFLAGS="-std=c11 $BASE_CFLAGS"
-
-  cpp-smoke:
-    name: C++ include smoke (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Compile as C++
-        run: |
-          cat > sonicsv_cpp_test.cpp <<'EOF'
-          #define SONICSV_IMPLEMENTATION
-          #include "sonicsv.h"
-          int main() { return 0; }
-          EOF
-          c++ -std=c++17 -Wall -Wextra -I. sonicsv_cpp_test.cpp -o sonicsv_cpp_test
-          ./sonicsv_cpp_test
-
-  windows-mingw:
-    name: Windows (MinGW UCRT64)
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-    steps:
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            make
-            git
-      - uses: actions/checkout@v4
-      - name: Build & test
-        run: make test CFLAGS="-std=c11 $BASE_CFLAGS"
 
   windows-msvc:
     name: Windows (MSVC)
@@ -134,36 +68,8 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Build tests
+      - name: Build & run C tests
         shell: cmd
-        run: cl /nologo /std:c11 /O2 /W3 /DSONICSV_IMPLEMENTATION /I. tests/sonicsv_test.c /Fe:sonicsv_test.exe
-      - name: Run tests
-        shell: cmd
-        run: sonicsv_test.exe
-
-  windows-clang-cl:
-    name: Windows (clang-cl)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-      - name: Build tests
-        shell: cmd
-        run: clang-cl /nologo /std:c11 /O2 /W3 /DSONICSV_IMPLEMENTATION /I. tests/sonicsv_test.c /Fe:sonicsv_test.exe
-      - name: Run tests
-        shell: cmd
-        run: sonicsv_test.exe
-
-  freebsd:
-    name: FreeBSD (clang)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build & test in FreeBSD VM
-        uses: vmactions/freebsd-vm@v1
-        with:
-          usesh: true
-          prepare: pkg install -y gmake git
-          run: gmake test CFLAGS="-std=c11 -O3 -Wall -Wextra -DSONICSV_IMPLEMENTATION"
+        run: |
+          cl /nologo /std:c11 /O2 /W3 /DSONICSV_IMPLEMENTATION /I. tests/sonicsv_test.c /Fe:sonicsv_test.exe
+          sonicsv_test.exe

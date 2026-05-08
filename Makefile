@@ -11,10 +11,12 @@ LDFLAGS = -lpthread -lm
 # spelling — the matching #defines inside sonicsv.h are a fallback for
 # users who control include order. _POSIX_C_SOURCE=200809L unlocks
 # clock_gettime, posix_madvise, etc.; _DEFAULT_SOURCE keeps glibc's
-# madvise/MADV_* visible alongside POSIX.
+# madvise/MADV_* visible alongside POSIX. `override` is required so these
+# survive a command-line `make CFLAGS=...` invocation (CI does this) —
+# without it, the user-supplied CFLAGS clobbers all subsequent `+=`.
 ifneq ($(OS),Windows_NT)
-CFLAGS += -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
-CXXFLAGS += -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
+override CFLAGS += -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -DSONICSV_IMPLEMENTATION
+override CXXFLAGS += -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE -DSONICSV_IMPLEMENTATION
 endif
 
 # On macOS, match the deployment target to the running system so we don't
